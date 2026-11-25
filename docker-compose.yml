@@ -1,0 +1,59 @@
+services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: verkku-games-valkey
+    restart: unless-stopped
+    command:
+      - valkey-server
+      - --maxmemory
+      - 128mb
+      - --maxmemory-policy
+      - allkeys-lru
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --requirepass
+      - ${VALKEY_PASSWORD:-change_me_local_dev_only}
+    ports:
+      # Bound to loopback only for local development. In Raspberry Pi production, omit host ports and use Docker internal network.
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli -a \"$${VALKEY_PASSWORD:-change_me_local_dev_only}\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - verkku-internal
+
+  # Optional full-stack Raspberry Pi ARM64 / x64 profile:
+  # Run with: docker compose --profile api up -d --build
+  api:
+    profiles: ["api"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: verkku-games-api
+    restart: unless-stopped
+    depends_on:
+      valkey:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Cache__RedisConnectionString: "valkey:6379,password=${VALKEY_PASSWORD:-change_me_local_dev_only},abortConnect=false"
+      ApiSecurity__ClientApiKey: ${API_CLIENT_KEY:?API_CLIENT_KEY is required}
+      Shop2TopUp__KeyId: ${SHOP2TOPUP_KEY_ID:?SHOP2TOPUP_KEY_ID is required}
+      Shop2TopUp__KeySecret: ${SHOP2TOPUP_KEY_SECRET:?SHOP2TOPUP_KEY_SECRET is required}
+      Shop2TopUp__ProviderUid: ${SHOP2TOPUP_PROVIDER_UID:-d4f8a2c1-7b3e-4f90-9a12-6e8b5c3d1f42}
+      Pricing__DefaultMarkupPercent: ${PRICING_DEFAULT_MARKUP_PERCENT:-10.0}
+      Pricing__MinimumMarginUsd: ${PRICING_MINIMUM_MARGIN_USD:-0.25}
+    ports:
+      # Bind only to loopback so Cloudflare Tunnel (cloudflared) reaches it locally without LAN/WAN exposure.
+      - "127.0.0.1:8080:8080"
+    networks:
+      - verkku-internal
+
+networks:
+  verkku-internal:
+    driver: bridge

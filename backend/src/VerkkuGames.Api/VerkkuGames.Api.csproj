@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>VerkkuGames.Api</RootNamespace>
+    <UserSecretsId>verkku-games-api-v1</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VerkkuGames.Application\VerkkuGames.Application.csproj" />
+    <ProjectReference Include="..\VerkkuGames.Infrastructure\VerkkuGames.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,35 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+secrets.json
+
+# Superpowers scratch workspace
+.superpowers/
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.vsidx
+TestResults/
+coverage/
+.vs/
+
+# Frontend / Bun / Astro / Cloudflare
+node_modules/
+dist/
+.astro/
+.wrangler/
+.dev.vars
+*.log
+
+# OS / Editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

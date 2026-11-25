@@ -1,0 +1,18 @@
+root = true
+
+[*.cs]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = lf
+insert_final_newline = true
+
+# Keep code quality strict while avoiding false-positive CA noise in Minimal APIs / tests
+dotnet_diagnostic.CA1848.severity = suggestion
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1812.severity = suggestion
+dotnet_diagnostic.CA1062.severity = suggestion
+dotnet_diagnostic.CA1822.severity = suggestion
+dotnet_diagnostic.CA1308.severity = none
+dotnet_diagnostic.CA1861.severity = suggestion

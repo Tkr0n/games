@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "verkku-games",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "PUBLIC_SITE_URL": "https://games.verkku.com",
+    "API_BASE_URL": "https://api.games.verkku.com"
+  }
+}

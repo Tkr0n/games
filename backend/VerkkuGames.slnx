@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VerkkuGames.Domain/VerkkuGames.Domain.csproj" />
+    <Project Path="src/VerkkuGames.Application/VerkkuGames.Application.csproj" />
+    <Project Path="src/VerkkuGames.Infrastructure/VerkkuGames.Infrastructure.csproj" />
+    <Project Path="src/VerkkuGames.Api/VerkkuGames.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VerkkuGames.UnitTests/VerkkuGames.UnitTests.csproj" />
+    <Project Path="tests/VerkkuGames.IntegrationTests/VerkkuGames.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

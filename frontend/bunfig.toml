@@ -1,0 +1,5 @@
+[install]
+# 7-day cooldown on newly published npm packages to mitigate supply-chain attacks
+minimumReleaseAge = 604800
+# Do not execute third-party postinstall lifecycle scripts unless explicitly trusted
+exact = true
