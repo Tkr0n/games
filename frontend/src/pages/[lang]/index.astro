@@ -1,0 +1,238 @@
+---
+import CategoryCard from '../../components/astro/CategoryCard.astro';
+import HeroBanner from '../../components/astro/HeroBanner.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getDictionary, isLocale } from '../../i18n/utils';
+import {
+  createServerApiClient,
+  resolveClientIp,
+  resolveServerEnv,
+} from '../../lib/api-client';
+import { PRIMARY_REGIONS, getRegionMeta } from '../../lib/regions';
+import {
+  buildOrganizationJsonLd,
+  buildWebSiteJsonLd,
+  normalizeSiteUrl,
+} from '../../lib/seo';
+import type { CategoryDto } from '../../lib/types';
+
+const lang = Astro.params.lang;
+
+if (!isLocale(lang)) {
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
+
+const locale = lang;
+const t = getDictionary(locale);
+
+const siteUrl = normalizeSiteUrl(Astro.site?.toString() ?? Astro.url.origin);
+const client = createServerApiClient(resolveServerEnv(Astro.locals), {
+  clientIp: resolveClientIp(Astro.request),
+});
+
+const [bigResult, categoriesResult, ratesResult] = await Promise.all([
+  client.getBigCategories(),
+  client.getCategories(),
+  client.getRates(),
+]);
+
+const bigCategories = bigResult.ok ? bigResult.data : [];
+const categories = categoriesResult.ok ? categoriesResult.data : [];
+const rates = ratesResult.ok ? ratesResult.data : null;
+const catalogUnavailable = !bigResult.ok || !categoriesResult.ok;
+
+const featured: CategoryDto[] = [];
+const seenNames = new Set<string>();
+
+for (const category of categories) {
+  const key = category.name.trim().toLowerCase();
+  if (!key || seenNames.has(key)) continue;
+
+  seenNames.add(key);
+  featured.push(category);
+
+  if (featured.length >= 8) break;
+}
+
+/**
+ * Big categories have no item-level filter in the public API, so each card
+ * links to a real category page inside that group (never to a search that
+ * could return nothing).
+ */
+function bigCategoryHref(bigCategoryId: string): string {
+  const match = categories.find((category) => category.bigCategoryId === bigCategoryId);
+
+  return match
+    ? `/${locale}/category/${encodeURIComponent(match.providerUid)}/${encodeURIComponent(match.externalId)}`
+    : `/${locale}/catalog`;
+}
+
+const title = `${t.meta.siteName} · ${t.meta.tagline}`;
+const description = t.meta.defaultDescription;
+
+const jsonLd = [buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl, locale)];
+---
+
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  pathname={Astro.url.pathname}
+  siteUrl={siteUrl}
+  jsonLd={jsonLd}
+  initialRates={rates}
+>
+  <div class="space-y-12">
+    <HeroBanner locale={locale} />
+
+    {
+      catalogUnavailable ? (
+        <section
+          role="alert"
+          class="verkku-surface space-y-3 border-verkku-mint-soft/25 p-6"
+          aria-labelledby="catalog-status-title"
+        >
+          <h2 id="catalog-status-title" class="font-display text-lg font-bold text-verkku-light">
+            {t.errors.apiUnavailableTitle}
+          </h2>
+          <p class="max-w-prose text-sm leading-relaxed text-verkku-stone">
+            {t.errors.apiUnavailableBody}
+          </p>
+          <p class="text-xs leading-relaxed text-verkku-mint-soft">{t.regions.otherNote}</p>
+          <a
+            href={`${Astro.url.pathname}${Astro.url.search}`}
+            class="inline-flex rounded-lg bg-verkku-green px-4 py-2 text-sm font-semibold text-verkku-light transition-colors hover:bg-verkku-emerald focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+          >
+            {t.common.retry}
+          </a>
+        </section>
+      ) : null
+    }
+
+    {
+      bigCategories.length > 0 ? (
+        <section class="space-y-4" aria-labelledby="big-categories-title">
+          <div class="space-y-1">
+            <h2 id="big-categories-title" class="font-display text-2xl font-bold text-verkku-light">
+              {t.catalog.bigCategoriesTitle}
+            </h2>
+            <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">
+              {t.catalog.bigCategoriesSubtitle}
+            </p>
+          </div>
+
+          <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {bigCategories.map((bigCategory) => (
+              <li>
+                <CategoryCard
+                  locale={locale}
+                  name={bigCategory.name}
+                  description={bigCategory.description}
+                  imageUrl={bigCategory.imageUrl}
+                  href={bigCategoryHref(bigCategory.externalId)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null
+    }
+
+    {
+      featured.length > 0 ? (
+        <section class="space-y-4" aria-labelledby="featured-categories-title">
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div class="space-y-1">
+              <h2 id="featured-categories-title" class="font-display text-2xl font-bold text-verkku-light">
+                {t.catalog.title}
+              </h2>
+              <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">{t.catalog.subtitle}</p>
+            </div>
+            <a
+              href={`/${locale}/catalog`}
+              class="rounded-lg border border-verkku-mint-soft/30 bg-verkku-surface px-4 py-2 text-sm font-semibold text-verkku-stone transition-colors hover:border-verkku-neon/60 hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+            >
+              {t.common.viewAll}
+            </a>
+          </div>
+
+          <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.map((category) => (
+              <li>
+                <CategoryCard
+                  locale={locale}
+                  name={category.name}
+                  description={category.description}
+                  imageUrl={category.imageUrl}
+                  region={category.region}
+                  href={`/${locale}/category/${encodeURIComponent(category.providerUid)}/${encodeURIComponent(category.externalId)}`}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : !catalogUnavailable ? (
+        <section class="verkku-surface space-y-2 p-6">
+          <h2 class="font-display text-lg font-bold text-verkku-light">{t.catalog.emptyTitle}</h2>
+          <p class="max-w-prose text-sm leading-relaxed text-verkku-stone">{t.catalog.emptyBody}</p>
+        </section>
+      ) : null
+    }
+
+    <section class="verkku-grid space-y-5 rounded-2xl border border-verkku-mint-soft/20 bg-verkku-surface/60 p-6 sm:p-8" aria-labelledby="regions-title">
+      <div class="space-y-1">
+        <h2 id="regions-title" class="font-display text-2xl font-bold text-verkku-light">
+          {t.regions.title}
+        </h2>
+        <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">{t.regions.subtitle}</p>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div class="space-y-2">
+          <h3 class="font-display text-sm font-bold uppercase tracking-[0.18em] text-verkku-mint-soft">
+            {t.regions.whyTitle}
+          </h3>
+          <p class="text-sm leading-relaxed text-verkku-stone">{t.regions.whyBody}</p>
+          <p class="text-xs leading-relaxed text-verkku-mint-soft">{t.regions.globalNote}</p>
+          <p class="text-xs leading-relaxed text-verkku-stone">{t.regions.venezuelaNote}</p>
+        </div>
+
+        <nav aria-label={t.regions.title} class="flex flex-wrap content-start gap-2">
+          {PRIMARY_REGIONS.map((code) => {
+            const meta = getRegionMeta(code, locale);
+
+            return (
+              <a
+                href={`/${locale}/catalog?region=${code}&includeGlobal=true`}
+                title={meta.description}
+                class="inline-flex flex-col rounded-xl border border-verkku-mint-soft/30 bg-verkku-bg-deep/60 px-4 py-2 transition-colors hover:border-verkku-neon/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+              >
+                <span class="font-display text-sm font-bold text-verkku-light">{meta.shortLabel}</span>
+                <span class="text-[11px] text-verkku-mint-soft">{meta.label}</span>
+              </a>
+            );
+          })}
+        </nav>
+      </div>
+    </section>
+
+    <section class="rounded-2xl border border-verkku-neon/30 bg-verkku-neon/5 p-6 sm:p-8" aria-labelledby="studio-teaser-title">
+      <p class="inline-flex items-center gap-2 rounded-full border border-verkku-neon/40 bg-verkku-bg-deep/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-verkku-mint">
+        {t.studio.eyebrow}
+        <span aria-hidden="true" class="text-verkku-mint-soft/60">·</span>
+        {t.studio.badge}
+      </p>
+      <h2 id="studio-teaser-title" class="mt-3 font-display text-2xl font-bold text-verkku-light">
+        {t.studio.title}
+      </h2>
+      <p class="mt-2 max-w-2xl text-sm leading-relaxed text-verkku-stone">{t.studio.body}</p>
+      <a
+        href={`/${locale}/studio`}
+        class="mt-4 inline-flex rounded-lg border border-verkku-mint-soft/40 bg-verkku-bg-deep/60 px-4 py-2 text-sm font-semibold text-verkku-stone transition-colors hover:border-verkku-neon/60 hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+      >
+        {t.hero.ctaStudio}
+      </a>
+    </section>
+  </div>
+</BaseLayout>

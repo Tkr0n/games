@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Verkku Games">
+  <rect width="64" height="64" rx="15" fill="#05342E"/>
+  <path d="M16.5 17.5 32 47.2l15.5-29.7" fill="none" stroke="#25C877" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 47.2 47.5 17.5" fill="none" stroke="#209959" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="48.5" cy="49.5" r="4" fill="#25C877"/>
+  <circle cx="48.5" cy="49.5" r="1.6" fill="#05342E"/>
+</svg>

@@ -1,0 +1,133 @@
+---
+import Breadcrumbs from '../../../components/astro/Breadcrumbs.astro';
+import CatalogExplorer, { type CatalogFilters } from '../../../components/react/CatalogExplorer.tsx';
+import { getDictionary, isLocale } from '../../../i18n/utils';
+import {
+  createServerApiClient,
+  isValidExternalId,
+  resolveClientIp,
+  resolveServerEnv,
+} from '../../../lib/api-client';
+import { isValidRegionCode } from '../../../lib/regions';
+import { buildBreadcrumbJsonLd, normalizeSiteUrl } from '../../../lib/seo';
+import type { ProductType, RegionCode } from '../../../lib/types';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+const lang = Astro.params.lang;
+
+if (!isLocale(lang)) {
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
+
+const locale = lang;
+const t = getDictionary(locale);
+const params = Astro.url.searchParams;
+
+function readBoolean(name: string): boolean | undefined {
+  const raw = params.get(name);
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  return undefined;
+}
+
+function readPage(): number {
+  const raw = params.get('page');
+  if (!raw || !/^\d+$/.test(raw)) return 1;
+
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+const rawRegion = (params.get('region') ?? '').trim();
+const region: RegionCode | null = isValidRegionCode(rawRegion) ? rawRegion : null;
+const countrySelected = region !== null && region !== 'GLOBAL' && region !== 'OTHER';
+
+const rawProductType = (params.get('productType') ?? '').trim();
+const productType: ProductType | null =
+  rawProductType === 'topup' || rawProductType === 'voucher' ? rawProductType : null;
+
+const rawCategoryId = (params.get('categoryId') ?? '').trim();
+const categoryId = isValidExternalId(rawCategoryId) ? rawCategoryId : null;
+
+const rawSearch = (params.get('q') ?? params.get('search') ?? '').trim();
+const search = rawSearch.slice(0, 100);
+
+const filters: CatalogFilters = {
+  region,
+  includeGlobal: readBoolean('includeGlobal') ?? (countrySelected ? true : false),
+  productType,
+  inStockOnly: readBoolean('inStockOnly') ?? false,
+  search,
+  categoryId,
+  page: readPage(),
+};
+
+const siteUrl = normalizeSiteUrl(Astro.site?.toString() ?? Astro.url.origin);
+const client = createServerApiClient(resolveServerEnv(Astro.locals), {
+  clientIp: resolveClientIp(Astro.request),
+});
+
+const [itemsResult, ratesResult] = await Promise.all([
+  client.getItems({
+    region: filters.region ?? undefined,
+    includeGlobal: filters.includeGlobal,
+    productType: filters.productType ?? undefined,
+    inStockOnly: filters.inStockOnly,
+    search: filters.search || undefined,
+    categoryId: filters.categoryId ?? undefined,
+    page: filters.page,
+    pageSize: 24,
+  }),
+  client.getRates(),
+]);
+
+const rates = ratesResult.ok ? ratesResult.data : null;
+const initialPage = itemsResult.ok ? itemsResult.data : null;
+const initialError = itemsResult.ok ? null : itemsResult.error;
+
+const title = `${t.catalog.title} · ${t.meta.siteName}`;
+const description = t.catalog.subtitle;
+
+const jsonLd = [
+  buildBreadcrumbJsonLd(siteUrl, [
+    { name: t.nav.home, path: `/${locale}` },
+    { name: t.catalog.title, path: `/${locale}/catalog` },
+  ]),
+];
+---
+
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  pathname={Astro.url.pathname}
+  siteUrl={siteUrl}
+  jsonLd={jsonLd}
+  initialRates={rates}
+>
+  <div class="space-y-6">
+    <Breadcrumbs
+      locale={locale}
+      items={[
+        { name: t.nav.home, href: `/${locale}/` },
+        { name: t.catalog.title },
+      ]}
+    />
+
+    <header class="space-y-2">
+      <h1 class="font-display text-3xl font-extrabold text-verkku-light sm:text-4xl">{t.catalog.title}</h1>
+      <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">{t.catalog.subtitle}</p>
+    </header>
+
+    <CatalogExplorer
+      client:load
+      locale={locale}
+      initialPage={initialPage}
+      initialFilters={filters}
+      initialError={initialError}
+      initialRates={rates}
+      pageSize={24}
+    />
+  </div>
+</BaseLayout>

@@ -1,0 +1,10 @@
+---
+import { detectPreferredLocale } from '../i18n/utils';
+
+const locale = detectPreferredLocale(
+  Astro.request.headers.get('cookie'),
+  Astro.request.headers.get('accept-language'),
+);
+
+return Astro.redirect(`/${locale}/`, 302);
+---

@@ -1,0 +1,103 @@
+---
+import Breadcrumbs from '../../../components/astro/Breadcrumbs.astro';
+import { getDictionary, isLocale } from '../../../i18n/utils';
+import { buildBreadcrumbJsonLd, normalizeSiteUrl } from '../../../lib/seo';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+const lang = Astro.params.lang;
+
+if (!isLocale(lang)) {
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
+
+const locale = lang;
+const t = getDictionary(locale);
+
+const siteUrl = normalizeSiteUrl(Astro.site?.toString() ?? Astro.url.origin);
+
+const title = `${t.studio.eyebrow} · ${t.meta.siteName}`;
+const description = t.studio.body.slice(0, 160);
+
+const jsonLd = [
+  buildBreadcrumbJsonLd(siteUrl, [
+    { name: t.nav.home, path: `/${locale}` },
+    { name: t.nav.studio, path: `/${locale}/studio` },
+  ]),
+];
+---
+
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  pathname={Astro.url.pathname}
+  siteUrl={siteUrl}
+  jsonLd={jsonLd}
+>
+  <div class="space-y-6">
+    <Breadcrumbs
+      locale={locale}
+      items={[
+        { name: t.nav.home, href: `/${locale}/` },
+        { name: t.nav.studio },
+      ]}
+    />
+
+    <section
+      class="verkku-grid relative overflow-hidden rounded-2xl border border-verkku-mint-soft/20 bg-verkku-surface/70 p-6 sm:p-10"
+      aria-labelledby="studio-title"
+    >
+      <div
+        aria-hidden="true"
+        class="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-verkku-neon/10 blur-3xl"
+      >
+      </div>
+
+      <div class="relative max-w-3xl space-y-5">
+        <div class="flex flex-wrap items-center gap-2">
+          <p class="inline-flex items-center gap-2 rounded-full border border-verkku-neon/40 bg-verkku-bg-deep/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-verkku-mint">
+            {t.studio.eyebrow}
+          </p>
+          <span class="rounded-full border border-verkku-mint-soft/35 bg-verkku-surface px-3 py-1 text-[11px] font-semibold text-verkku-mint-soft">
+            {t.studio.badge}
+          </span>
+        </div>
+
+        <h1 id="studio-title" class="font-display text-3xl font-extrabold leading-tight text-verkku-light sm:text-4xl lg:text-5xl">
+          {t.studio.title}
+        </h1>
+
+        <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone sm:text-base">{t.studio.body}</p>
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <a
+            href={`/${locale}/catalog`}
+            class="inline-flex items-center justify-center rounded-xl bg-verkku-green px-5 py-3 text-sm font-semibold text-verkku-light transition-colors hover:bg-verkku-emerald focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+          >
+            {t.product.backToCatalog}
+          </a>
+          <a
+            href={`/${locale}/`}
+            class="inline-flex items-center justify-center rounded-xl border border-verkku-mint-soft/40 bg-verkku-bg-deep/60 px-5 py-3 text-sm font-semibold text-verkku-stone transition-colors hover:border-verkku-neon/60 hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+          >
+            {t.nav.home}
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="verkku-surface space-y-3 p-5 sm:p-6" aria-labelledby="studio-status-title">
+      <h2 id="studio-status-title" class="font-display text-lg font-bold text-verkku-light">
+        {t.studio.badge}
+      </h2>
+
+      <p class="inline-flex flex-col gap-1 rounded-xl border border-verkku-mint-soft/30 bg-verkku-bg-deep/60 px-4 py-3">
+        <span class="text-sm font-semibold text-verkku-stone">{t.studio.cta}</span>
+        <span class="text-xs leading-relaxed text-verkku-mint-soft">{t.studio.footnote}</span>
+      </p>
+
+      <p class="max-w-2xl text-xs leading-relaxed text-verkku-mint-soft">{t.footer.disclaimer}</p>
+    </section>
+  </div>
+</BaseLayout>

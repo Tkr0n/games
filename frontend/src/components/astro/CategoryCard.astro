@@ -1,0 +1,54 @@
+---
+import type { Locale } from '../../i18n/config';
+import type { RegionCode } from '../../lib/types';
+import { getRegionMeta } from '../../lib/regions';
+import { sanitizeExternalImageUrl } from '../../lib/seo';
+
+interface Props {
+  locale: Locale;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  href: string;
+  region?: RegionCode | null;
+}
+
+const { locale, name, description, imageUrl, href, region } = Astro.props;
+
+const imageSrc = sanitizeExternalImageUrl(imageUrl);
+const regionMeta = region ? getRegionMeta(region, locale) : null;
+---
+
+<a
+  href={href}
+  class="group flex h-full flex-col overflow-hidden rounded-xl border border-verkku-mint-soft/20 bg-verkku-surface/90 transition-colors hover:border-verkku-neon/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+>
+  <div class="relative aspect-[16/10] overflow-hidden bg-verkku-bg-deep">
+    <img
+      src={imageSrc}
+      alt={name}
+      loading="lazy"
+      decoding="async"
+      referrerpolicy="no-referrer"
+      width="480"
+      height="300"
+      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transform-none"
+    />
+    {
+      regionMeta ? (
+        <span class="absolute left-2 top-2 rounded-full border border-verkku-neon/40 bg-verkku-bg-deep/85 px-2 py-0.5 text-[10px] font-bold tracking-wide text-verkku-mint">
+          {regionMeta.shortLabel}
+        </span>
+      ) : null
+    }
+  </div>
+
+  <div class="flex flex-1 flex-col gap-1.5 p-4">
+    <h3 class="font-display text-sm font-bold leading-snug text-verkku-light">{name}</h3>
+    {
+      description ? (
+        <p class="line-clamp-2 text-xs leading-relaxed text-verkku-mint-soft">{description}</p>
+      ) : null
+    }
+  </div>
+</a>

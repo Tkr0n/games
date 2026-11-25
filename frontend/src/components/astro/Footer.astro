@@ -1,0 +1,132 @@
+---
+import { LOCALES, type Locale } from '../../i18n/config';
+import { getDictionary, switchLocalePath } from '../../i18n/utils';
+import { PRIMARY_REGIONS } from '../../lib/regions';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getDictionary(locale);
+
+const currentPath = `${Astro.url.pathname}${Astro.url.search}`;
+
+const columnTitleClass =
+  'font-display text-xs font-bold uppercase tracking-[0.18em] text-verkku-mint-soft';
+const columnLinkClass =
+  'rounded text-sm text-verkku-stone transition-colors hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon';
+const mutedItemClass = 'text-sm text-verkku-mint-soft/80';
+---
+
+<footer class="mt-16 border-t border-verkku-mint-soft/15 bg-verkku-bg-deep">
+  <div
+    class="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1fr_1fr]"
+  >
+    <div class="space-y-4">
+      <a
+        href={`/${locale}/`}
+        class="inline-flex items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-verkku-neon"
+      >
+        <img src="/assets/logo.svg" alt={t.meta.siteName} width="168" height="40" class="h-9 w-auto" />
+        <span
+          class="rounded-full border border-verkku-neon/45 bg-verkku-surface px-2 py-0.5 text-[10px] font-bold tracking-[0.28em] text-verkku-mint"
+        >
+          GAMES
+        </span>
+      </a>
+
+      <p class="max-w-xs text-sm leading-relaxed text-verkku-stone">{t.footer.tagline}</p>
+      <p class="max-w-xs text-xs leading-relaxed text-verkku-mint-soft">{t.meta.tagline}</p>
+    </div>
+
+    <nav aria-label={t.footer.catalogTitle} class="space-y-3">
+      <h2 class={columnTitleClass}>{t.footer.catalogTitle}</h2>
+      <ul class="space-y-2">
+        <li><a href={`/${locale}/catalog`} class={columnLinkClass}>{t.nav.catalog}</a></li>
+        <li>
+          <a href={`/${locale}/catalog`} class={columnLinkClass}>{t.footer.allRegions}</a>
+        </li>
+        <li><a href={`/${locale}/studio`} class={columnLinkClass}>{t.footer.studio}</a></li>
+      </ul>
+    </nav>
+
+    <nav aria-label={t.footer.companyTitle} class="space-y-3">
+      <h2 class={columnTitleClass}>{t.footer.companyTitle}</h2>
+      <ul class="space-y-2">
+        <li><span class={mutedItemClass}>{t.footer.about}</span></li>
+        <li><span class={mutedItemClass}>{t.footer.contact}</span></li>
+        <li><a href={`/${locale}/studio`} class={columnLinkClass}>{t.footer.studio}</a></li>
+      </ul>
+    </nav>
+
+    <div class="space-y-3">
+      <h2 class={columnTitleClass}>{t.footer.legalTitle}</h2>
+      <ul class="space-y-2">
+        <li><span class={mutedItemClass}>{t.footer.terms}</span></li>
+        <li><span class={mutedItemClass}>{t.footer.privacy}</span></li>
+        <li><span class={mutedItemClass}>{t.footer.cookies}</span></li>
+      </ul>
+    </div>
+
+    <nav aria-label={t.footer.regionsTitle} class="space-y-3">
+      <h2 class={columnTitleClass}>{t.footer.regionsTitle}</h2>
+      <ul class="flex flex-wrap gap-1.5">
+        {
+          PRIMARY_REGIONS.map((code) => {
+            return (
+              <li>
+                <a
+                  href={`/${locale}/catalog?region=${code}&includeGlobal=true`}
+                  class="inline-flex rounded-full border border-verkku-mint-soft/25 bg-verkku-surface px-2.5 py-1 text-[11px] font-semibold text-verkku-stone transition-colors hover:border-verkku-neon/60 hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+                >
+                  {code}
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+      <p class="text-xs leading-relaxed text-verkku-mint-soft">{t.regions.globalNote}</p>
+    </nav>
+  </div>
+
+  <div class="border-t border-verkku-mint-soft/15">
+    <div
+      class="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6"
+    >
+      <p class="text-xs text-verkku-mint-soft">{t.footer.rights}</p>
+
+      <nav aria-label={t.footer.languageLabel} class="flex items-center gap-2 text-xs font-semibold">
+        {
+          LOCALES.map((code, index) => (
+            <Fragment>
+              {index > 0 ? (
+                <span aria-hidden="true" class="text-verkku-mint-soft/50">
+                  |
+                </span>
+              ) : null}
+              <a
+                href={switchLocalePath(currentPath, code)}
+                hreflang={code}
+                lang={code}
+                aria-current={locale === code ? 'page' : undefined}
+                class={
+                  locale === code
+                    ? 'text-verkku-light underline decoration-verkku-neon decoration-2 underline-offset-4'
+                    : 'text-verkku-mint-soft transition-colors hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon'
+                }
+              >
+                {code.toUpperCase()}
+              </a>
+            </Fragment>
+          ))
+        }
+      </nav>
+    </div>
+
+    <div class="mx-auto w-full max-w-6xl px-4 pb-6 sm:px-6">
+      <p class="text-[11px] leading-relaxed text-verkku-mint-soft/70">{t.footer.disclaimer}</p>
+    </div>
+  </div>
+</footer>

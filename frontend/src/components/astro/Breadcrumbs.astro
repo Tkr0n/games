@@ -1,0 +1,53 @@
+---
+import type { Locale } from '../../i18n/config';
+
+interface BreadcrumbItem {
+  name: string;
+  href?: string;
+}
+
+interface Props {
+  locale: Locale;
+  items: BreadcrumbItem[];
+}
+
+const { locale, items } = Astro.props;
+
+const navLabel = locale === 'es' ? 'Ruta de navegación' : 'Breadcrumb';
+---
+
+<nav aria-label={navLabel} class="w-full">
+  <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-verkku-mint-soft">
+    {
+      items.map((item, index) => {
+        const isLast = index === items.length - 1;
+
+        return (
+          <li class="flex min-w-0 items-center gap-2">
+            {index > 0 ? (
+              <span aria-hidden="true" class="text-verkku-mint-soft/50">
+                /
+              </span>
+            ) : null}
+
+            {item.href && !isLast ? (
+              <a
+                href={item.href}
+                class="max-w-[28ch] truncate rounded underline decoration-verkku-mint-soft/40 underline-offset-4 transition-colors hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+              >
+                {item.name}
+              </a>
+            ) : (
+              <span
+                aria-current={isLast ? 'page' : undefined}
+                class="max-w-[32ch] truncate font-semibold text-verkku-stone"
+              >
+                {item.name}
+              </span>
+            )}
+          </li>
+        );
+      })
+    }
+  </ol>
+</nav>

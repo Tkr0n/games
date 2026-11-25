@@ -1,0 +1,132 @@
+---
+import CurrencySwitcher from '../react/CurrencySwitcher.tsx';
+import { LOCALES, type Locale } from '../../i18n/config';
+import { switchLocalePath, getDictionary } from '../../i18n/utils';
+import type { ExchangeRatesDto } from '../../lib/types';
+
+interface Props {
+  locale: Locale;
+  /** Public rate snapshot for the currency island; never contains secrets. */
+  initialRates?: ExchangeRatesDto | null;
+}
+
+const { locale, initialRates } = Astro.props;
+const t = getDictionary(locale);
+
+const pathname = Astro.url.pathname;
+const currentPath = `${pathname}${Astro.url.search}`;
+
+const navItems = [
+  { href: `/${locale}/`, label: t.nav.home, match: (path: string) => path === `/${locale}/` || path === `/${locale}` },
+  {
+    href: `/${locale}/catalog`,
+    label: t.nav.catalog,
+    match: (path: string) =>
+      path === `/${locale}/catalog` ||
+      path.startsWith(`/${locale}/catalog/`) ||
+      path.startsWith(`/${locale}/category/`) ||
+      path.startsWith(`/${locale}/product/`),
+  },
+  { href: `/${locale}/studio`, label: t.nav.studio, match: (path: string) => path.startsWith(`/${locale}/studio`) },
+];
+
+const isActive = (match: (path: string) => boolean): boolean => match(pathname);
+
+const linkClasses = (active: boolean): string =>
+  active
+    ? 'rounded-lg px-3 py-2 text-sm font-semibold text-verkku-light underline decoration-verkku-neon decoration-2 underline-offset-8'
+    : 'rounded-lg px-3 py-2 text-sm font-medium text-verkku-stone transition-colors hover:text-verkku-light hover:underline hover:decoration-verkku-mint/60 hover:underline-offset-8';
+---
+
+<header class="sticky top-0 z-40 border-b border-verkku-mint-soft/15 bg-verkku-bg-deep/90 backdrop-blur">
+  <div class="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
+    <a
+      href={`/${locale}/`}
+      class="inline-flex items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-verkku-neon"
+      aria-label={t.meta.siteName}
+    >
+      <img src="/assets/logo.svg" alt={t.meta.siteName} width="168" height="40" class="h-9 w-auto" />
+      <span
+        class="rounded-full border border-verkku-neon/45 bg-verkku-surface px-2 py-0.5 text-[10px] font-bold tracking-[0.28em] text-verkku-mint"
+      >
+        GAMES
+      </span>
+    </a>
+
+    <nav aria-label={t.nav.menuLabel} class="hidden items-center gap-1 md:flex">
+      {
+        navItems.map((item) => (
+          <a
+            href={item.href}
+            aria-current={isActive(item.match) ? 'page' : undefined}
+            class={linkClasses(isActive(item.match))}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="ml-auto flex items-center gap-3">
+      <nav aria-label={t.nav.languageLabel} class="flex items-center gap-1 text-xs font-semibold">
+        {
+          LOCALES.map((code, index) => (
+            <Fragment>
+              {index > 0 ? (
+                <span aria-hidden="true" class="text-verkku-mint-soft/50">
+                  |
+                </span>
+              ) : null}
+              <a
+                href={switchLocalePath(currentPath, code)}
+                hreflang={code}
+                lang={code}
+                data-locale-switch={code}
+                aria-current={locale === code ? 'page' : undefined}
+                class={
+                  locale === code
+                    ? 'rounded px-1.5 py-1 text-verkku-light underline decoration-verkku-neon decoration-2 underline-offset-4'
+                    : 'rounded px-1.5 py-1 text-verkku-mint-soft transition-colors hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon'
+                }
+              >
+                {code.toUpperCase()}
+              </a>
+            </Fragment>
+          ))
+        }
+      </nav>
+
+      <CurrencySwitcher client:load locale={locale} initialRates={initialRates ?? null} />
+    </div>
+
+    <nav
+      aria-label={t.nav.menuLabel}
+      class="flex w-full items-center gap-1 overflow-x-auto pb-0.5 md:hidden"
+    >
+      {
+        navItems.map((item) => (
+          <a
+            href={item.href}
+            aria-current={isActive(item.match) ? 'page' : undefined}
+            class={`${linkClasses(isActive(item.match))} whitespace-nowrap`}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>
+
+<script is:inline>
+  document.querySelectorAll('[data-locale-switch]').forEach(function (link) {
+    link.addEventListener('click', function () {
+      try {
+        var value = link.getAttribute('data-locale-switch');
+        document.cookie = 'locale=' + value + '; path=/; max-age=31536000; samesite=lax';
+      } catch (error) {
+        /* Cookies blocked: the navigation itself still switches the locale. */
+      }
+    });
+  });
+</script>

@@ -1,0 +1,66 @@
+---
+import '../styles/global.css';
+import { DEFAULT_LOCALE, HTML_LANG, type Locale } from '../i18n/config';
+import { getDictionary } from '../i18n/utils';
+
+const localeMatch = /^\/(es|en)(?=\/|$)/.exec(Astro.url.pathname);
+const locale: Locale = (localeMatch?.[1] as Locale | undefined) ?? DEFAULT_LOCALE;
+const t = getDictionary(locale);
+
+Astro.response.status = 404;
+---
+
+<!doctype html>
+<html lang={HTML_LANG[locale]}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{`404 · ${t.errors.notFoundTitle} · ${t.meta.siteName}`}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-screen bg-[#05342E] text-[#EFF0E9] antialiased">
+    <main class="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center gap-8 px-6 py-16 text-center">
+      <a href={`/${locale}/`} class="inline-flex items-center gap-3 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25C877]">
+        <img src="/assets/logo.svg" alt={t.meta.siteName} width="168" height="40" class="h-10 w-auto" />
+        <span class="rounded-full border border-[#25C877]/40 bg-[#0A453D] px-3 py-1 text-xs font-semibold tracking-[0.3em] text-[#8BCCAB]">GAMES</span>
+      </a>
+
+      <p class="font-display text-[clamp(4rem,18vw,8rem)] leading-none font-black text-[#25C877]" aria-hidden="true">404</p>
+
+      <div class="space-y-3">
+        <h1 class="font-display text-3xl font-bold text-[#FBF7F5] sm:text-4xl">{t.errors.notFoundTitle}</h1>
+        <p class="mx-auto max-w-xl text-base leading-relaxed text-[#EFF0E9]/80">{t.errors.notFoundBody}</p>
+      </div>
+
+      <div class="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
+        <a
+          href={`/${locale}/catalog`}
+          class="inline-flex w-full items-center justify-center rounded-xl bg-[#209959] px-6 py-3 text-sm font-semibold text-[#FBF7F5] transition-colors hover:bg-[#1A8154] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25C877] sm:w-auto"
+        >
+          {t.errors.notFoundCta}
+        </a>
+        <a
+          href={`/${locale}/`}
+          class="inline-flex w-full items-center justify-center rounded-xl border border-[#8BCCAB]/40 bg-[#0A453D] px-6 py-3 text-sm font-semibold text-[#EFF0E9] transition-colors hover:border-[#25C877] hover:text-[#FBF7F5] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25C877] sm:w-auto"
+        >
+          {t.nav.home}
+        </a>
+      </div>
+
+      <nav aria-label={t.nav.languageLabel} class="flex items-center gap-3 pt-4 text-sm text-[#EFF0E9]/70">
+        <span>{t.nav.languageLabel}:</span>
+        <a href="/es/" hreflang="es" lang="es" class="rounded underline decoration-[#25C877]/60 underline-offset-4 hover:text-[#FBF7F5] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25C877]">Español</a>
+        <span aria-hidden="true">·</span>
+        <a href="/en/" hreflang="en" lang="en" class="rounded underline decoration-[#25C877]/60 underline-offset-4 hover:text-[#FBF7F5] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25C877]">English</a>
+        <span aria-hidden="true">·</span>
+        <a
+          href={`/${locale}/catalog`}
+          class="rounded underline decoration-[#25C877]/60 underline-offset-4 hover:text-[#FBF7F5] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25C877]"
+        >
+          {t.nav.catalog}
+        </a>
+      </nav>
+    </main>
+  </body>
+</html>

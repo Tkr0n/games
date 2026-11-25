@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/*
+ * Verkku Games brand tokens (Tailwind CSS v4).
+ * Google Fonts (Bricolage Grotesque + Poppins) are linked from the layout head
+ * so the CSP can keep `style-src`/`font-src` narrow without a remote @import.
+ */
+@theme {
+  --color-verkku-bg: #05342E;
+  --color-verkku-bg-deep: #06352F;
+  --color-verkku-surface: #0A453D;
+  --color-verkku-surface-elevated: #0E4F46;
+  --color-verkku-emerald: #1A8154;
+  --color-verkku-green: #209959;
+  --color-verkku-neon: #25C877;
+  --color-verkku-mint: #81CB79;
+  --color-verkku-mint-soft: #8BCCAB;
+  --color-verkku-teal: #2E6D6D;
+  --color-verkku-teal-bright: #1F9087;
+  --color-verkku-light: #FBF7F5;
+  --color-verkku-stone: #EFF0E9;
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-sans: 'Poppins', system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --verkku-ring: var(--color-verkku-neon);
+    --verkku-muted: color-mix(in srgb, var(--color-verkku-light) 68%, transparent);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-verkku-bg);
+    color: var(--color-verkku-light);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a {
+    color: inherit;
+    text-decoration-thickness: from-font;
+    text-underline-offset: 0.18em;
+  }
+
+  ::selection {
+    background-color: var(--color-verkku-neon);
+    color: var(--color-verkku-bg-deep);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--verkku-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::placeholder {
+    color: color-mix(in srgb, var(--color-verkku-light) 52%, transparent);
+  }
+
+  hr {
+    border-color: color-mix(in srgb, var(--color-verkku-mint-soft) 22%, transparent);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: var(--color-verkku-bg-deep);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--color-verkku-teal-bright) 60%, var(--color-verkku-bg-deep));
+    border-radius: 999px;
+    border: 2px solid var(--color-verkku-bg-deep);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Frosted panel used by catalog cards and sticky filter rails. */
+  .verkku-surface {
+    background-color: color-mix(in srgb, var(--color-verkku-surface) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-verkku-mint-soft) 18%, transparent);
+    border-radius: 1rem;
+    backdrop-filter: blur(12px);
+  }
+
+  /* Subtle emerald grid used behind the hero and empty states. */
+  .verkku-grid {
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--color-verkku-neon) 10%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-verkku-neon) 10%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 48px 48px;
+    background-position: center;
+  }
+}

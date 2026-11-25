@@ -1,0 +1,140 @@
+---
+import Footer from '../components/astro/Footer.astro';
+import Navbar from '../components/astro/Navbar.astro';
+import '../styles/global.css';
+import { HTML_LANG, OG_LOCALE, type Locale } from '../i18n/config';
+import { getDictionary } from '../i18n/utils';
+import { buildCanonicalUrl, buildHreflangLinks, normalizeSiteUrl } from '../lib/seo';
+import type { ExchangeRatesDto } from '../lib/types';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  /** URL pathname without query, used for canonical + hreflang. */
+  pathname: string;
+  siteUrl: string;
+  ogImage?: string;
+  noindex?: boolean;
+  jsonLd?: Array<Record<string, unknown>>;
+  /** Public rate snapshot for the currency island; never contains secrets. */
+  initialRates?: ExchangeRatesDto | null;
+}
+
+const {
+  locale,
+  title,
+  description,
+  pathname,
+  siteUrl,
+  ogImage,
+  noindex = false,
+  jsonLd = [],
+  initialRates,
+} = Astro.props;
+
+const t = getDictionary(locale);
+
+const base = normalizeSiteUrl(siteUrl);
+const canonical = buildCanonicalUrl(base, pathname);
+const alternates = buildHreflangLinks(base, pathname);
+
+const alternateLocale: Locale = locale === 'es' ? 'en' : 'es';
+const defaultOgImage = `${base}/assets/logo.svg`;
+
+const rawOgImage = (ogImage ?? '').trim();
+const resolvedOgImage = rawOgImage
+  ? /^https?:\/\//i.test(rawOgImage)
+    ? rawOgImage
+    : `${base}${rawOgImage.startsWith('/') ? rawOgImage : `/${rawOgImage}`}`
+  : defaultOgImage;
+
+/**
+ * JSON.stringify alone can close the script tag early when a product name
+ * contains `</script>`. Escaping the HTML-significant characters keeps the
+ * embedded JSON-LD inert.
+ */
+function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+---
+
+<!doctype html>
+<html lang={HTML_LANG[locale]} dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#05342E" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    {
+      noindex ? (
+        <meta name="robots" content="noindex, nofollow" />
+      ) : (
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+      )
+    }
+
+    {
+      alternates.map((alternate) => (
+        <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />
+      ))
+    }
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={t.meta.siteName} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={OG_LOCALE[locale]} />
+    <meta property="og:locale:alternate" content={OG_LOCALE[alternateLocale]} />
+    <meta property="og:image" content={resolvedOgImage} />
+    <meta property="og:image:alt" content={t.meta.siteName} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={resolvedOgImage} />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap"
+    />
+
+    {
+      jsonLd.map((entry) => (
+        <script type="application/ld+json" set:html={serializeJsonLd(entry)} />
+      ))
+    }
+  </head>
+
+  <body class="min-h-dvh bg-verkku-bg font-sans text-verkku-light">
+    <a
+      href="#main-content"
+      class="sr-only rounded-lg bg-verkku-neon px-4 py-2 text-sm font-semibold text-verkku-bg-deep focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:outline-2 focus:outline-offset-2 focus:outline-verkku-light"
+    >
+      {t.nav.skipToContent}
+    </a>
+
+    <Navbar locale={locale} initialRates={initialRates ?? null} />
+
+    <main id="main-content" class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6" tabindex="-1">
+      <slot />
+    </main>
+
+    <Footer locale={locale} />
+  </body>
+</html>

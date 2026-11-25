@@ -1,0 +1,161 @@
+---
+import Breadcrumbs from '../../../../components/astro/Breadcrumbs.astro';
+import ProductDetailPanel from '../../../../components/react/ProductDetailPanel.tsx';
+import { getDictionary, isLocale } from '../../../../i18n/utils';
+import {
+  createServerApiClient,
+  isValidExternalId,
+  isValidUuid,
+  resolveClientIp,
+  resolveServerEnv,
+} from '../../../../lib/api-client';
+import {
+  buildBreadcrumbJsonLd,
+  buildProductJsonLd,
+  normalizeSiteUrl,
+  sanitizeExternalImageUrl,
+} from '../../../../lib/seo';
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+
+const { lang, providerUid, id } = Astro.params;
+
+if (!isLocale(lang) || !isValidUuid(providerUid) || !isValidExternalId(id)) {
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
+
+const locale = lang;
+const t = getDictionary(locale);
+
+const siteUrl = normalizeSiteUrl(Astro.site?.toString() ?? Astro.url.origin);
+const client = createServerApiClient(resolveServerEnv(Astro.locals), {
+  clientIp: resolveClientIp(Astro.request),
+});
+
+const [detailResult, ratesResult] = await Promise.all([
+  client.getItemDetail(providerUid, id),
+  client.getRates(),
+]);
+
+const rates = ratesResult.ok ? ratesResult.data : null;
+const detail = detailResult.ok ? detailResult.data : null;
+
+if (!detailResult.ok && detailResult.status === 404) {
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
+
+const item = detail?.item ?? null;
+const categoryId = item && isValidExternalId(item.categoryId) ? item.categoryId : null;
+
+const breadcrumbItems: Array<{ name: string; href?: string }> = [
+  { name: t.nav.home, href: `/${locale}/` },
+  { name: t.catalog.title, href: `/${locale}/catalog` },
+];
+
+if (item && categoryId) {
+  breadcrumbItems.push({
+    name: item.categoryName,
+    href: `/${locale}/category/${encodeURIComponent(providerUid)}/${encodeURIComponent(categoryId)}`,
+  });
+}
+
+if (item) {
+  breadcrumbItems.push({ name: item.name });
+}
+
+const title = item ? `${item.name} · ${t.meta.siteName}` : `${t.errors.apiUnavailableTitle} · ${t.meta.siteName}`;
+const description = item ? item.description.slice(0, 160) : t.errors.apiUnavailableBody;
+
+const jsonLd = detail
+  ? [
+      buildBreadcrumbJsonLd(siteUrl, [
+        { name: t.nav.home, path: `/${locale}` },
+        { name: t.catalog.title, path: `/${locale}/catalog` },
+        ...(categoryId
+          ? [
+              {
+                name: detail.item.categoryName,
+                path: `/${locale}/category/${providerUid}/${categoryId}`,
+              },
+            ]
+          : []),
+        {
+          name: detail.item.name,
+          path: `/${locale}/product/${providerUid}/${detail.item.externalId}`,
+        },
+      ]),
+      buildProductJsonLd(siteUrl, locale, detail),
+    ]
+  : [];
+---
+
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  pathname={Astro.url.pathname}
+  siteUrl={siteUrl}
+  jsonLd={jsonLd}
+  initialRates={rates}
+  noindex={!detail}
+  ogImage={item ? sanitizeExternalImageUrl(item.imageUrl) : undefined}
+>
+  <div class="space-y-6">
+    {
+      detail && item ? (
+        <>
+          <Breadcrumbs locale={locale} items={breadcrumbItems} />
+
+          <header class="space-y-2">
+            {
+              categoryId ? (
+                <a
+                  href={`/${locale}/category/${encodeURIComponent(providerUid)}/${encodeURIComponent(categoryId)}`}
+                  class="text-xs font-semibold uppercase tracking-[0.16em] text-verkku-mint-soft transition-colors hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+                >
+                  {item.categoryName}
+                </a>
+              ) : (
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-verkku-mint-soft">
+                  {item.categoryName}
+                </p>
+              )
+            }
+
+            <h1 class="font-display text-3xl font-extrabold leading-tight text-verkku-light sm:text-4xl">
+              {item.name}
+            </h1>
+
+            {item.description ? (
+              <p class="max-w-3xl text-sm leading-relaxed text-verkku-stone">{item.description}</p>
+            ) : null}
+          </header>
+
+          <ProductDetailPanel client:load locale={locale} detail={detail} initialRates={rates} />
+        </>
+      ) : (
+        <section role="alert" class="verkku-surface space-y-3 border-verkku-mint-soft/25 p-6">
+          <h1 class="font-display text-xl font-bold text-verkku-light">{t.errors.apiUnavailableTitle}</h1>
+          <p class="max-w-prose text-sm leading-relaxed text-verkku-stone">
+            {t.errors.apiUnavailableBody}
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <a
+              href={`${Astro.url.pathname}${Astro.url.search}`}
+              class="inline-flex rounded-lg bg-verkku-green px-4 py-2 text-sm font-semibold text-verkku-light transition-colors hover:bg-verkku-emerald focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+            >
+              {t.common.retry}
+            </a>
+            <a
+              href={`/${locale}/catalog`}
+              class="inline-flex rounded-lg border border-verkku-mint-soft/30 bg-verkku-surface px-4 py-2 text-sm font-semibold text-verkku-stone transition-colors hover:border-verkku-neon/60 hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+            >
+              {t.product.backToCatalog}
+            </a>
+          </div>
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>

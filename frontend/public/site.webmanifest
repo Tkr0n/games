@@ -1,0 +1,22 @@
+{
+  "name": "Verkku Games",
+  "short_name": "Verkku Games",
+  "description": "Recargas y gift cards con precio en vivo. Top-ups and gift cards at live prices.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "/es",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#05342E",
+  "background_color": "#05342E",
+  "categories": ["games", "shopping", "entertainment"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

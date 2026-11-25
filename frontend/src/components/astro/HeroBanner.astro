@@ -1,0 +1,95 @@
+---
+import type { Locale } from '../../i18n/config';
+import { getDictionary } from '../../i18n/utils';
+import { PRIMARY_REGIONS, getRegionMeta } from '../../lib/regions';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getDictionary(locale);
+---
+
+<section
+  class="verkku-grid relative overflow-hidden rounded-2xl border border-verkku-mint-soft/20 bg-verkku-surface/70 p-6 sm:p-10"
+>
+  <div
+    aria-hidden="true"
+    class="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-verkku-neon/10 blur-3xl"
+  >
+  </div>
+
+  <div class="relative max-w-3xl space-y-6">
+    <p
+      class="inline-flex items-center gap-2 rounded-full border border-verkku-neon/40 bg-verkku-bg-deep/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-verkku-mint"
+    >
+      <span aria-hidden="true" class="size-1.5 rounded-full bg-verkku-neon"></span>
+      {t.hero.eyebrow}
+    </p>
+
+    <h1 class="font-display text-3xl font-extrabold leading-tight text-verkku-light sm:text-4xl lg:text-5xl">
+      {t.hero.title}
+      <span class="text-verkku-neon">{t.hero.highlight}</span>
+    </h1>
+
+    <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone sm:text-base">{t.hero.subtitle}</p>
+
+    <div class="flex flex-col gap-3 sm:flex-row">
+      <a
+        href={`/${locale}/catalog`}
+        class="inline-flex items-center justify-center rounded-xl bg-verkku-green px-5 py-3 text-sm font-semibold text-verkku-light transition-colors hover:bg-verkku-emerald focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+      >
+        {t.hero.ctaCatalog}
+      </a>
+      <a
+        href={`/${locale}/studio`}
+        class="inline-flex items-center justify-center rounded-xl border border-verkku-mint-soft/40 bg-verkku-bg-deep/60 px-5 py-3 text-sm font-semibold text-verkku-stone transition-colors hover:border-verkku-neon/60 hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+      >
+        {t.hero.ctaStudio}
+      </a>
+    </div>
+
+    <ul class="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-verkku-mint-soft">
+      {
+        [t.hero.trustInstant, t.hero.trustSecure, t.hero.trustRegional].map((item) => (
+          <li class="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" class="text-verkku-mint">
+              ✓
+            </span>
+            {item}
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <div class="relative mt-8 space-y-3 border-t border-verkku-mint-soft/20 pt-6">
+    <p class="text-xs font-bold uppercase tracking-[0.18em] text-verkku-mint-soft">
+      {t.regions.selectLabel}
+    </p>
+
+    <nav aria-label={t.regions.title} class="flex flex-wrap gap-2">
+      {
+        PRIMARY_REGIONS.map((code) => {
+          const meta = getRegionMeta(code, locale);
+
+          return (
+            <a
+              href={`/${locale}/catalog?region=${code}&includeGlobal=true`}
+              title={meta.description}
+              class="inline-flex items-center gap-2 rounded-full border border-verkku-mint-soft/35 bg-verkku-bg-deep/70 px-4 py-2 text-sm font-semibold text-verkku-stone transition-colors hover:border-verkku-neon hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+            >
+              <span class="font-display text-xs font-bold tracking-wide text-verkku-mint">
+                {code}
+              </span>
+              <span class="text-xs font-medium text-verkku-mint-soft">{meta.label}</span>
+            </a>
+          );
+        })
+      }
+    </nav>
+
+    <p class="max-w-2xl text-xs leading-relaxed text-verkku-stone">{t.regions.venezuelaNote}</p>
+  </div>
+</section>
