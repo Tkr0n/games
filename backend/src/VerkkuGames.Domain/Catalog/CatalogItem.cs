@@ -14,4 +14,7 @@ public sealed record CatalogItem(
     RegionCode Region,
     Money? RetailPriceUsd,
     bool InStock,
-    bool PricesLocked);
+    bool PricesLocked,
+    GameKeyVariant? KeyVariant = null,
+    RegionLockInfo? RegionLock = null,
+    string? Platform = null);

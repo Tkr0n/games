@@ -69,6 +69,13 @@ export interface Dictionary {
     typeGamesDesc: string;
     typeGiftCards: string;
     typeGiftCardsDesc: string;
+    typeFullGames: string;
+    typeFullGamesDesc: string;
+    keyVariantBaseGame: string;
+    keyVariantDlc: string;
+    keyVariantSeasonPass: string;
+    keyVariantUnknown: string;
+    regionLockBadge: string;
   };
   regions: {
     title: string;

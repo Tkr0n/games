@@ -73,6 +73,9 @@ services:
       Shop2TopUp__KeyId: ${SHOP2TOPUP_KEY_ID:?SHOP2TOPUP_KEY_ID is required}
       Shop2TopUp__KeySecret: ${SHOP2TOPUP_KEY_SECRET:?SHOP2TOPUP_KEY_SECRET is required}
       Shop2TopUp__ProviderUid: ${SHOP2TOPUP_PROVIDER_UID:-d4f8a2c1-7b3e-4f90-9a12-6e8b5c3d1f42}
+      FazerCards__BaseUrl: https://api.fzr.cards/api/v2
+      FazerCards__ApiKey: ${FAZERCARDS_API_KEY:?FAZERCARDS_API_KEY is required}
+      FazerCards__ProviderUid: ${FAZERCARDS_PROVIDER_UID:-9075f324-4177-45e9-a79c-f23722258b8f}
       Pricing__DefaultMarkupPercent: ${PRICING_DEFAULT_MARKUP_PERCENT:-10.0}
       Pricing__MinimumMarginUsd: ${PRICING_MINIMUM_MARGIN_USD:-0.25}
     ports:

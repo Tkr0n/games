@@ -94,7 +94,7 @@ const jsonLd = [buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl, lo
         <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">{t.home.typeFilterSubtitle}</p>
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <a
           href={`/${locale}/catalog?productType=topup`}
           class="group relative overflow-hidden rounded-2xl border border-verkku-neon/30 bg-gradient-to-br from-verkku-surface to-verkku-bg-deep p-6 transition-colors hover:border-verkku-neon/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
@@ -111,6 +111,15 @@ const jsonLd = [buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl, lo
           <p class="text-3xl" aria-hidden="true">🎁</p>
           <h3 class="mt-3 font-display text-xl font-bold text-verkku-light">{t.home.typeGiftCards}</h3>
           <p class="mt-1 max-w-md text-sm leading-relaxed text-verkku-stone">{t.home.typeGiftCardsDesc}</p>
+        </a>
+
+        <a
+          href={`/${locale}/catalog?providerUid=9075f324-4177-45e9-a79c-f23722258b8f`}
+          class="group relative overflow-hidden rounded-2xl border border-verkku-teal-bright/40 bg-gradient-to-br from-verkku-surface to-verkku-bg-deep p-6 transition-colors hover:border-verkku-neon/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+        >
+          <p class="text-3xl" aria-hidden="true">🎲</p>
+          <h3 class="mt-3 font-display text-xl font-bold text-verkku-light">{t.home.typeFullGames}</h3>
+          <p class="mt-1 max-w-md text-sm leading-relaxed text-verkku-stone">{t.home.typeFullGamesDesc}</p>
         </a>
       </div>
     </section>

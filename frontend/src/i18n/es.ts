@@ -49,6 +49,13 @@ export const es: Dictionary = {
     typeGamesDesc: 'Saldo directo a tu cuenta: Free Fire, PUBG, Mobile Legends y más.',
     typeGiftCards: 'Gift cards',
     typeGiftCardsDesc: 'Códigos de PSN, Xbox, Steam, Google Play, Razer Gold y más.',
+    typeFullGames: 'Juegos completos',
+    typeFullGamesDesc: 'Llave de juego para Steam y otras plataformas. Elige bien la región: algunas llaves solo activan en ciertos países.',
+    keyVariantBaseGame: 'Juego completo',
+    keyVariantDlc: 'DLC / expansión',
+    keyVariantSeasonPass: 'Pase de temporada',
+    keyVariantUnknown: 'Llave digital',
+    regionLockBadge: 'Con restricción de región',
   },
   regions: {
     title: 'Elige la región de tu cuenta',

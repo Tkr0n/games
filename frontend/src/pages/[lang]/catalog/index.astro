@@ -50,6 +50,11 @@ const productType: ProductType | null =
 const rawCategoryId = (params.get('categoryId') ?? '').trim();
 const categoryId = isValidExternalId(rawCategoryId) ? rawCategoryId : null;
 
+const rawProviderUid = (params.get('providerUid') ?? '').trim();
+const providerUid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawProviderUid)
+  ? rawProviderUid
+  : null;
+
 const rawSearch = (params.get('q') ?? params.get('search') ?? '').trim();
 const search = rawSearch.slice(0, 100);
 
@@ -60,6 +65,7 @@ const filters: CatalogFilters = {
   inStockOnly: readBoolean('inStockOnly') ?? false,
   search,
   categoryId,
+  providerUid,
   page: readPage(),
 };
 
@@ -76,6 +82,7 @@ const [itemsResult, ratesResult] = await Promise.all([
     inStockOnly: filters.inStockOnly,
     search: filters.search || undefined,
     categoryId: filters.categoryId ?? undefined,
+    providerUid: filters.providerUid ?? undefined,
     page: filters.page,
     pageSize: 24,
   }),

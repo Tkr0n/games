@@ -9,6 +9,7 @@ using VerkkuGames.Application.Options;
 using VerkkuGames.Infrastructure.Caching;
 using VerkkuGames.Infrastructure.Options;
 using VerkkuGames.Infrastructure.Providers.Binance;
+using VerkkuGames.Infrastructure.Providers.FazerCards;
 using VerkkuGames.Infrastructure.Providers.Shop2TopUp;
 
 namespace VerkkuGames.Infrastructure;
@@ -44,6 +45,11 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<FazerCardsOptions>()
+            .Bind(configuration.GetSection(FazerCardsOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         var cacheOptions = configuration.GetSection(CacheOptions.SectionName).Get<CacheOptions>()
             ?? new CacheOptions();
 
@@ -71,6 +77,22 @@ public static class DependencyInjection
 
         services.AddTransient<ICatalogProvider>(serviceProvider =>
             serviceProvider.GetRequiredService<Shop2TopUpCatalogProvider>());
+
+        var fazerCardsOptions = configuration.GetSection(FazerCardsOptions.SectionName).Get<FazerCardsOptions>()
+            ?? new FazerCardsOptions();
+        if (!string.IsNullOrWhiteSpace(fazerCardsOptions.ApiKey))
+        {
+            services.AddHttpClient<FazerCardsCatalogProvider>(client =>
+                {
+                    client.BaseAddress = BuildBaseAddress(fazerCardsOptions.BaseUrl);
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                })
+                .AddStandardResilienceHandler(options =>
+                    ConfigureResilience(options, fazerCardsOptions.TimeoutSeconds));
+
+            services.AddTransient<ICatalogProvider>(serviceProvider =>
+                serviceProvider.GetRequiredService<FazerCardsCatalogProvider>());
+        }
 
         services.AddHttpClient<BinanceExchangeRateProvider>(client =>
             {

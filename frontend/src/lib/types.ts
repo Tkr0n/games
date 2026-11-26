@@ -49,6 +49,12 @@ export interface CatalogItemDto {
   retailPriceUsd: MoneyDto | null;
   inStock: boolean;
   pricesLocked: boolean;
+  /** Full-game keys only: base game, DLC or season pass. */
+  keyVariant?: 'baseGame' | 'dlc' | 'seasonPass' | 'unknown' | null;
+  /** Storefront for a game key, e.g. "Steam". */
+  platform?: string | null;
+  /** Region-lock info for game keys; empty lists mean region-free. */
+  regionLock?: { regionType: string; availableCountryCodes: string[]; unavailableCountryCodes: string[] } | null;
 }
 
 export interface CategoryRequirementDto {

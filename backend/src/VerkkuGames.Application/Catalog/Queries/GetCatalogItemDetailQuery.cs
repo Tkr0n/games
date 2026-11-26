@@ -53,20 +53,13 @@ public sealed class GetCatalogItemDetailQueryHandler(
 
         var provider = providerResult.Value;
 
-        var itemsResult = await provider.GetItemsAsync(categoryId: null, cancellationToken);
-        if (itemsResult.IsFailure)
+        var itemResult = await provider.GetItemByIdAsync(query.ItemId, cancellationToken).ConfigureAwait(false);
+        if (itemResult.IsFailure)
         {
-            return Result<CatalogItemDetail>.Failure(itemsResult.Error);
+            return Result<CatalogItemDetail>.Failure(itemResult.Error);
         }
 
-        var item = itemsResult.Value.FirstOrDefault(candidate =>
-            string.Equals(candidate.ExternalId, query.ItemId, StringComparison.Ordinal));
-
-        if (item is null)
-        {
-            return Result<CatalogItemDetail>.Failure(
-                Error.NotFound("item_not_found", "The requested catalog item was not found."));
-        }
+        var item = itemResult.Value;
 
         IReadOnlyList<CategoryRequirement> requirements = [];
         var requirementsResult = await provider.GetCategoryRequirementsAsync(item.CategoryId, cancellationToken);
@@ -75,13 +68,18 @@ public sealed class GetCatalogItemDetailQueryHandler(
             requirements = requirementsResult.Value;
         }
 
-        var siblingItems = itemsResult.Value
-            .Where(candidate => string.Equals(candidate.CategoryId, item.CategoryId, StringComparison.Ordinal))
-            .Where(candidate => !string.Equals(candidate.ExternalId, item.ExternalId, StringComparison.Ordinal))
-            .OrderBy(candidate => candidate.RetailPriceUsd?.Amount)
-            .ThenBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(candidate => candidate.ExternalId, StringComparer.Ordinal)
-            .ToArray();
+        IReadOnlyList<CatalogItem> siblingItems = [];
+        var siblingsResult = await provider.GetItemsAsync(item.CategoryId, cancellationToken).ConfigureAwait(false);
+        if (siblingsResult.IsSuccess)
+        {
+            siblingItems = siblingsResult.Value
+                .Where(candidate => string.Equals(candidate.CategoryId, item.CategoryId, StringComparison.Ordinal))
+                .Where(candidate => !string.Equals(candidate.ExternalId, item.ExternalId, StringComparison.Ordinal))
+                .OrderBy(candidate => candidate.RetailPriceUsd?.Amount)
+                .ThenBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(candidate => candidate.ExternalId, StringComparer.Ordinal)
+                .ToArray();
+        }
 
         IReadOnlyList<CatalogCategory> relatedRegionCategories = [];
         var categoriesResult = await provider.GetCategoriesAsync(bigCategoryId: null, cancellationToken);

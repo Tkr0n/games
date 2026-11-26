@@ -24,6 +24,8 @@ export interface CatalogFilters {
   search: string;
   /** Optional category scope, preserved from the URL. */
   categoryId: string | null;
+  /** Opaque provider UID (never a provider name). */
+  providerUid: string | null;
   page: number;
 }
 
@@ -98,6 +100,7 @@ function buildItemsQuery(filters: CatalogFilters, pageSize: number): string {
   if (filters.inStockOnly) params.set('inStockOnly', 'true');
   if (filters.search) params.set('search', filters.search);
   if (filters.categoryId) params.set('categoryId', filters.categoryId);
+  if (filters.providerUid) params.set('providerUid', filters.providerUid);
 
   params.set('page', String(filters.page));
   params.set('pageSize', String(pageSize));
@@ -116,6 +119,7 @@ function buildUrlQuery(filters: CatalogFilters): string {
   if (filters.inStockOnly) params.set('inStockOnly', 'true');
   if (filters.search) params.set('q', filters.search);
   if (filters.categoryId) params.set('categoryId', filters.categoryId);
+  if (filters.providerUid) params.set('providerUid', filters.providerUid);
   if (filters.page > 1) params.set('page', String(filters.page));
 
   return params.toString();
@@ -272,6 +276,7 @@ export default function CatalogExplorer({
       inStockOnly: false,
       search: '',
       categoryId: filtersRef.current.categoryId,
+      providerUid: filtersRef.current.providerUid,
       page: 1,
     });
   };
@@ -479,6 +484,18 @@ export default function CatalogExplorer({
                       >
                         {typeLabel}
                       </span>
+                      {item.keyVariant ? (
+                        <span className="rounded-full border border-verkku-teal-bright/50 bg-verkku-teal/25 px-2 py-0.5 text-[11px] font-semibold text-verkku-mint">
+                          {item.keyVariant === 'dlc'
+                            ? t.home.keyVariantDlc
+                            : item.keyVariant === 'seasonPass'
+                              ? t.home.keyVariantSeasonPass
+                              : item.keyVariant === 'baseGame'
+                                ? t.home.keyVariantBaseGame
+                                : t.home.keyVariantUnknown}
+                          {item.platform ? ` · ${item.platform}` : ''}
+                        </span>
+                      ) : null}
                       <span className="rounded-full border border-verkku-mint-soft/35 bg-verkku-bg-deep/60 px-2 py-0.5 text-[11px] font-semibold text-verkku-stone">
                         {item.inStock ? t.product.inStock : t.product.outOfStock}
                       </span>
