@@ -42,6 +42,14 @@ export const es: Dictionary = {
     trustSecure: 'Pago seguro',
     trustRegional: 'Pensado para Venezuela',
   },
+  home: {
+    typeFilterTitle: '¿Qué buscas hoy?',
+    typeFilterSubtitle: 'Elige entre recargar directo a un juego o una gift card con código.',
+    typeGames: 'Juegos y recargas',
+    typeGamesDesc: 'Saldo directo a tu cuenta: Free Fire, PUBG, Mobile Legends y más.',
+    typeGiftCards: 'Gift cards',
+    typeGiftCardsDesc: 'Códigos de PSN, Xbox, Steam, Google Play, Razer Gold y más.',
+  },
   regions: {
     title: 'Elige la región de tu cuenta',
     subtitle: 'Tu tienda te pide una región. Nosotros te traemos las tarjetas y recargas de esa región.',

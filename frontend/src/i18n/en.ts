@@ -42,6 +42,14 @@ export const en: Dictionary = {
     trustSecure: 'Secure checkout',
     trustRegional: 'Built for Venezuela',
   },
+  home: {
+    typeFilterTitle: 'What are you after today?',
+    typeFilterSubtitle: 'Pick between topping up a game directly or a gift card with a code.',
+    typeGames: 'Games & top-ups',
+    typeGamesDesc: 'Credit straight to your account: Free Fire, PUBG, Mobile Legends and more.',
+    typeGiftCards: 'Gift cards',
+    typeGiftCardsDesc: 'Codes for PSN, Xbox, Steam, Google Play, Razer Gold and more.',
+  },
   regions: {
     title: 'Pick your account region',
     subtitle: 'Your store asks for a region. We stock the cards and top-ups for that region.',

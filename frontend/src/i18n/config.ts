@@ -62,6 +62,14 @@ export interface Dictionary {
     trustSecure: string;
     trustRegional: string;
   };
+  home: {
+    typeFilterTitle: string;
+    typeFilterSubtitle: string;
+    typeGames: string;
+    typeGamesDesc: string;
+    typeGiftCards: string;
+    typeGiftCardsDesc: string;
+  };
   regions: {
     title: string;
     subtitle: string;

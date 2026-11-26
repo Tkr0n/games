@@ -449,7 +449,7 @@ export default function CatalogExplorer({
                   href={productHref}
                   className="group flex h-full flex-col overflow-hidden rounded-xl border border-verkku-mint-soft/20 bg-verkku-surface/90 transition-colors hover:border-verkku-neon/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-verkku-bg-deep">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-verkku-bg-deep p-3">
                     <img
                       src={sanitizeExternalImageUrl(item.imageUrl)}
                       alt={item.name}
@@ -458,7 +458,7 @@ export default function CatalogExplorer({
                       referrerPolicy="no-referrer"
                       width="480"
                       height="360"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transform-none"
+                      className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04] motion-reduce:transform-none"
                     />
                   </div>
 

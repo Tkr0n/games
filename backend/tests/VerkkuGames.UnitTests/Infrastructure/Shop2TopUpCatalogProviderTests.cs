@@ -80,7 +80,7 @@ public sealed class Shop2TopUpCatalogProviderTests
         Assert.Equal("1", numeric.ExternalId);
         Assert.Equal("Game Cards", numeric.Name);
         Assert.Equal("Digital game cards", numeric.Description);
-        Assert.Equal("https://cdn.test/big_game_cards.webp", numeric.ImageUrl);
+        Assert.Equal("https://cdn.test/big_game_cards.webp?w=512&q=80", numeric.ImageUrl);
         Assert.Equal(ProviderUid, numeric.ProviderUid);
 
         var stringId = result.Value[1];
@@ -105,7 +105,7 @@ public sealed class Shop2TopUpCatalogProviderTests
         var usa = result.Value[0];
         Assert.Equal("12", usa.ExternalId);
         Assert.Equal("1", usa.BigCategoryId);
-        Assert.Equal("https://cdn.test/ps-usa.webp", usa.ImageUrl);
+        Assert.Equal("https://cdn.test/ps-usa.webp?w=512&q=80", usa.ImageUrl);
         Assert.Equal(RegionCode.USA, usa.Region);
 
         var global = result.Value[1];
@@ -155,7 +155,7 @@ public sealed class Shop2TopUpCatalogProviderTests
         // max(0.95 * 1.10, 0.95 + 0.25) => 1.20 retail, never the 0.95 reseller cost.
         Assert.Equal(1.20m, playStation.RetailPriceUsd.Value.Amount);
         Assert.NotEqual(0.95m, playStation.RetailPriceUsd.Value.Amount);
-        Assert.Equal("https://cdn.test/ps-usa.webp", playStation.ImageUrl);
+        Assert.Equal("https://cdn.test/ps-usa.webp?w=512&q=80", playStation.ImageUrl);
         Assert.Equal(ProviderUid, playStation.ProviderUid);
 
         var locked = result.Value[1];
@@ -206,7 +206,7 @@ public sealed class Shop2TopUpCatalogProviderTests
         Assert.Equal(3, result.Value.Count);
 
         // Item inherits the safe parent category image (resolved against the CDN base).
-        Assert.Equal("https://cdn.test/ps-usa.webp", result.Value[0].ImageUrl);
+        Assert.Equal("https://cdn.test/ps-usa.webp?w=512&q=80", result.Value[0].ImageUrl);
 
         // Parent category image is unsafe -> null.
         Assert.Null(result.Value[1].ImageUrl);

@@ -676,8 +676,11 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
             return null;
         }
 
+        // The SHOP2TOPUP image CDN only serves the real asset when a resize
+        // query is present; without it, it returns a ~144-byte stub. Request a
+        // crisp thumbnail suitable for cards and product pages.
         return UrlSanitizer.SanitizeHttpsUrl(
-            string.Concat(_options.ImageCdnBaseUrl.TrimEnd('/'), "/", trimmed));
+            string.Concat(_options.ImageCdnBaseUrl.TrimEnd('/'), "/", trimmed, "?w=512&q=80"));
     }
 
     private RegionCode ResolveRegion(Shop2TopUpCategoryDto dto, string categoryName)

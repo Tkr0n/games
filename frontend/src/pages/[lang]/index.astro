@@ -86,6 +86,35 @@ const jsonLd = [buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl, lo
   <div class="space-y-12">
     <HeroBanner locale={locale} />
 
+    <section class="space-y-4" aria-labelledby="type-filter-title">
+      <div class="space-y-1">
+        <h2 id="type-filter-title" class="font-display text-2xl font-bold text-verkku-light">
+          {t.home.typeFilterTitle}
+        </h2>
+        <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">{t.home.typeFilterSubtitle}</p>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <a
+          href={`/${locale}/catalog?productType=topup`}
+          class="group relative overflow-hidden rounded-2xl border border-verkku-neon/30 bg-gradient-to-br from-verkku-surface to-verkku-bg-deep p-6 transition-colors hover:border-verkku-neon/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+        >
+          <p class="text-3xl" aria-hidden="true">🎮</p>
+          <h3 class="mt-3 font-display text-xl font-bold text-verkku-light">{t.home.typeGames}</h3>
+          <p class="mt-1 max-w-md text-sm leading-relaxed text-verkku-stone">{t.home.typeGamesDesc}</p>
+        </a>
+
+        <a
+          href={`/${locale}/catalog?productType=voucher`}
+          class="group relative overflow-hidden rounded-2xl border border-verkku-mint-soft/30 bg-gradient-to-br from-verkku-surface to-verkku-bg-deep p-6 transition-colors hover:border-verkku-neon/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+        >
+          <p class="text-3xl" aria-hidden="true">🎁</p>
+          <h3 class="mt-3 font-display text-xl font-bold text-verkku-light">{t.home.typeGiftCards}</h3>
+          <p class="mt-1 max-w-md text-sm leading-relaxed text-verkku-stone">{t.home.typeGiftCardsDesc}</p>
+        </a>
+      </div>
+    </section>
+
     {
       catalogUnavailable ? (
         <section
@@ -113,17 +142,25 @@ const jsonLd = [buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl, lo
     {
       bigCategories.length > 0 ? (
         <section class="space-y-4" aria-labelledby="big-categories-title">
-          <div class="space-y-1">
-            <h2 id="big-categories-title" class="font-display text-2xl font-bold text-verkku-light">
-              {t.catalog.bigCategoriesTitle}
-            </h2>
-            <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">
-              {t.catalog.bigCategoriesSubtitle}
-            </p>
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div class="space-y-1">
+              <h2 id="big-categories-title" class="font-display text-2xl font-bold text-verkku-light">
+                {t.catalog.bigCategoriesTitle}
+              </h2>
+              <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">
+                {t.catalog.bigCategoriesSubtitle}
+              </p>
+            </div>
+            <a
+              href={`/${locale}/catalog`}
+              class="rounded-lg border border-verkku-mint-soft/30 bg-verkku-surface px-4 py-2 text-sm font-semibold text-verkku-stone transition-colors hover:border-verkku-neon/60 hover:text-verkku-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verkku-neon"
+            >
+              {t.common.viewAll}
+            </a>
           </div>
 
           <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {bigCategories.map((bigCategory) => (
+            {bigCategories.slice(0, 20).map((bigCategory) => (
               <li>
                 <CategoryCard
                   locale={locale}

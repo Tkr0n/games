@@ -195,16 +195,18 @@ export default function ProductDetailPanel({ locale, detail, initialRates }: Pro
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
       <div className="verkku-surface overflow-hidden">
-        <img
-          src={sanitizeExternalImageUrl(item.imageUrl)}
-          alt={item.name}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          width="720"
-          height="540"
-          className="aspect-[4/3] w-full object-cover"
-        />
+        <div className="bg-verkku-bg-deep p-4">
+          <img
+            src={sanitizeExternalImageUrl(item.imageUrl)}
+            alt={item.name}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            width="720"
+            height="540"
+            className="aspect-[4/3] w-full object-contain"
+          />
+        </div>
         <div className="flex flex-wrap gap-1.5 p-4">
           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${regionClasses}`}>
             {t.product.regionLabel}: {regionMeta.label}
