@@ -30,12 +30,20 @@ public sealed class FazerCardsCatalogProviderTests
 
         Assert.True(result.IsSuccess);
         var request = Assert.Single(handler.Requests);
-        Assert.Equal($"{BaseUrl}/gamekeys?limit=50", request.Url);
+        Assert.Equal($"{BaseUrl}/gamekeys?include_ui=true&limit=50", request.Url);
         Assert.Equal(ApiKey, request.ApiKey);
         Assert.Equal(2, result.Value.Count);
         Assert.Equal("7_days_to_die_global", result.Value[0].ExternalId);
         Assert.Equal("7 Days to Die", result.Value[0].Name);
         Assert.Equal(ProviderUid, result.Value[0].ProviderUid);
+        // Steam appid fallback when no provider cover is supplied.
+        Assert.Equal(
+            "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/251570/header.jpg",
+            result.Value[0].ImageUrl);
+        // Provider cover takes precedence.
+        Assert.Equal(
+            "https://reseller.fazercards.com/api/v2/media/game-key-covers/abc.jpg",
+            result.Value[1].ImageUrl);
     }
 
     [Fact]
@@ -147,8 +155,8 @@ public sealed class FazerCardsCatalogProviderTests
       "ok": true,
       "kind": "game_key",
       "items": [
-        { "name": "7 Days to Die", "game_id": "7_days_to_die_global", "region": "GLOBAL", "platform": "Steam", "region_restriction": false },
-        { "name": "Abyssus", "game_id": "abyssus_global", "region": "GLOBAL", "platform": "Steam", "region_restriction": false }
+        { "name": "7 Days to Die", "game_id": "7_days_to_die_global", "region": "GLOBAL", "platform": "Steam", "region_restriction": false, "appid": 251570 },
+        { "name": "Abyssus", "game_id": "abyssus_global", "region": "GLOBAL", "platform": "Steam", "region_restriction": false, "imageurl": "https://reseller.fazercards.com/api/v2/media/game-key-covers/abc.jpg" }
       ],
       "meta": { "total": 2, "limit": 50, "next_cursor": null, "has_more": false }
     }

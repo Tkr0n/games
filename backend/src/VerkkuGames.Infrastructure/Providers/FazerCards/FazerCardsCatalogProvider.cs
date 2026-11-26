@@ -7,6 +7,7 @@ using VerkkuGames.Application.Abstractions;
 using VerkkuGames.Domain.Catalog;
 using VerkkuGames.Domain.Common;
 using VerkkuGames.Domain.ValueObjects;
+using VerkkuGames.Infrastructure.Common;
 using VerkkuGames.Infrastructure.Options;
 
 namespace VerkkuGames.Infrastructure.Providers.FazerCards;
@@ -17,8 +18,9 @@ namespace VerkkuGames.Infrastructure.Providers.FazerCards;
 /// </summary>
 public sealed class FazerCardsCatalogProvider : ICatalogProvider
 {
-    private const string GameKeysPath = "gamekeys";
-    private const string MePath = "me";
+    private const string GameKeysPath = "gamekeys?include_ui=true";
+    private const string GameKeysKeysPath = "gamekeys/keys?include_ui=true&game_id=";
+    private const string SteamHeaderBase = "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/";
     private const int MaxCursorPages = 10;
     private const int UnfilteredGameLimit = 8;
 
@@ -163,7 +165,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
                 ReadId(game.GameId),
                 game.Name ?? string.Empty,
                 BuildDescription(game),
-                null))
+                ResolveImage(game.ImageUrl, game.AppId)))
             .Where(item => item.ExternalId.Length > 0)
             .ToArray();
 
@@ -192,7 +194,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
                 ReadId(game.GameId),
                 game.Name ?? string.Empty,
                 BuildDescription(game),
-                null,
+                ResolveImage(game.ImageUrl, game.AppId),
                 MapRegion(game.Region, game.Name ?? string.Empty)))
             .Where(item => item.ExternalId.Length > 0)
             .ToArray();
@@ -302,7 +304,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
 
     private async Task<Result<bool>> FetchAccountHealthAsync(CancellationToken cancellationToken)
     {
-        var response = await SendAsync<FazerCardsAccountResponse>(MePath, cancellationToken).ConfigureAwait(false);
+        var response = await SendAsync<FazerCardsAccountResponse>("me", cancellationToken).ConfigureAwait(false);
         if (response.IsFailure)
         {
             return Result<bool>.Failure(response.Error);
@@ -322,7 +324,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
         {
             var path = string.Concat(
                 GameKeysPath,
-                "?limit=50",
+                "&limit=50",
                 cursor is null ? string.Empty : string.Concat("&cursor=", Uri.EscapeDataString(cursor)));
 
             var response = await SendAsync<FazerCardsGameCatalogResponse>(path, cancellationToken).ConfigureAwait(false);
@@ -354,7 +356,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
     {
         var path = string.Concat(
             GameKeysPath,
-            "?limit=",
+            "&limit=",
             UnfilteredGameLimit.ToString(CultureInfo.InvariantCulture),
             cursor is null ? string.Empty : string.Concat("&cursor=", Uri.EscapeDataString(cursor)));
 
@@ -368,7 +370,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
         string gameId,
         CancellationToken cancellationToken)
     {
-        var path = string.Concat("gamekeys/keys?game_id=", Uri.EscapeDataString(gameId));
+        var path = string.Concat(GameKeysKeysPath, Uri.EscapeDataString(gameId));
         var response = await SendAsync<FazerCardsKeysResponse>(path, cancellationToken).ConfigureAwait(false);
         if (response.IsFailure)
         {
@@ -404,7 +406,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
                 gameName,
                 key.Name ?? gameName,
                 variantLabel(effectiveVariant),
-                null,
+                ResolveImage(payload.ImageUrl, payload.AppId),
                 ProductType.TopUp,
                 region,
                 retail,
@@ -600,6 +602,28 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
     }
 
     private static string ReadId(string? value) => value?.Trim() ?? string.Empty;
+
+    /// <summary>
+    /// Prefer the cover returned by the provider; fall back to the Steam header
+    /// when a Steam app id is available; otherwise leave it null so the storefront
+    /// shows its local placeholder. Only absolute HTTPS URLs are accepted.
+    /// </summary>
+    private static string? ResolveImage(string? imageUrl, long? steamAppId)
+    {
+        var sanitized = UrlSanitizer.SanitizeHttpsUrl(imageUrl);
+        if (sanitized is not null)
+        {
+            return sanitized;
+        }
+
+        if (steamAppId is > 0)
+        {
+            return UrlSanitizer.SanitizeHttpsUrl(
+                string.Concat(SteamHeaderBase, steamAppId.Value.ToString(CultureInfo.InvariantCulture), "/header.jpg"));
+        }
+
+        return null;
+    }
 
     private static string NormalizeKeySegment(string? value)
     {

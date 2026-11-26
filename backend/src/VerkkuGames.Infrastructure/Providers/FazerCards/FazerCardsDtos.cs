@@ -53,6 +53,12 @@ internal sealed class FazerCardsGameDto
 
     [JsonPropertyName("region_restriction")]
     public bool RegionRestriction { get; set; }
+
+    [JsonPropertyName("appid")]
+    public long? AppId { get; set; }
+
+    [JsonPropertyName("imageurl")]
+    public string? ImageUrl { get; set; }
 }
 
 internal sealed class FazerCardsMetaDto
@@ -87,6 +93,12 @@ internal sealed class FazerCardsKeysResponse : FazerCardsResponseBase
 
     [JsonPropertyName("region_restriction")]
     public bool RegionRestriction { get; set; }
+
+    [JsonPropertyName("appid")]
+    public long? AppId { get; set; }
+
+    [JsonPropertyName("imageurl")]
+    public string? ImageUrl { get; set; }
 
     [JsonPropertyName("keys")]
     public List<FazerCardsKeyDto>? Keys { get; set; }
