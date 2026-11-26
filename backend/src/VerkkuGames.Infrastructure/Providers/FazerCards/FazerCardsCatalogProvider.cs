@@ -20,7 +20,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
     private const string GameKeysPath = "gamekeys";
     private const string MePath = "me";
     private const int MaxCursorPages = 10;
-    private const int UnfilteredGameLimit = 50;
+    private const int UnfilteredGameLimit = 8;
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -207,8 +207,8 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
         if (string.IsNullOrWhiteSpace(categoryId))
         {
             // A full listing would need one HTTP call per game (357+ games).
-            // For the unfiltered browse we expose the first page only; a direct
-            // product URL uses GetItemByIdAsync which resolves the game first.
+            // For the unfiltered browse we expose only a small curated page; a
+            // direct product URL uses GetItemByIdAsync which resolves the game first.
             var games = await FetchGamesPageAsync(null, cancellationToken).ConfigureAwait(false);
             if (games.IsFailure)
             {

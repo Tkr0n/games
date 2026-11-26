@@ -78,7 +78,7 @@ export interface ServerApiClient {
   getRates(): Promise<ApiResult<ExchangeRatesDto>>;
 }
 
-const REQUEST_TIMEOUT_MS = 8000;
+const REQUEST_TIMEOUT_MS = 30000;
 const MAX_ERROR_TEXT_LENGTH = 240;
 const JSON_CONTENT_TYPE = 'application/json; charset=utf-8';
 const ERROR_CODE_PATTERN = /^[a-z0-9_.-]{1,64}$/i;
