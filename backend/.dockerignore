@@ -1,0 +1,13 @@
+# Build context hygiene for the Verkku Games API image
+bin/
+obj/
+**/bin/
+**/obj/
+.env
+.env.*
+*.user
+*.suo
+.git/
+.gitignore
+.vs/
+TestResults/

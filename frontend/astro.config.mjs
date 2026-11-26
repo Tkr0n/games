@@ -22,6 +22,12 @@ export default defineConfig({
   security: {
     checkOrigin: true,
   },
+  server: {
+    // Dev-only: allow Cloudflare quick-tunnel hostnames (and anything else the
+    // dev server proxies) to reach the Vite dev server. Never affects the
+    // production Cloudflare Workers build.
+    allowedHosts: true,
+  },
   vite: {
     plugins: [tailwindcss()],
   },

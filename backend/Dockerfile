@@ -5,7 +5,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY Directory.Build.props Directory.Packages.props global.json ./
+COPY Directory.Build.props Directory.Packages.props global.json .editorconfig ./
 COPY src/VerkkuGames.Domain/VerkkuGames.Domain.csproj src/VerkkuGames.Domain/
 COPY src/VerkkuGames.Application/VerkkuGames.Application.csproj src/VerkkuGames.Application/
 COPY src/VerkkuGames.Infrastructure/VerkkuGames.Infrastructure.csproj src/VerkkuGames.Infrastructure/
