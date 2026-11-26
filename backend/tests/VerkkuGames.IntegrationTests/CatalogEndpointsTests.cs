@@ -87,9 +87,9 @@ public sealed class CatalogEndpointsTests
 
             var requirements = root.GetProperty("requirements");
             Assert.Equal(2, requirements.GetArrayLength());
-            Assert.Equal("single_select", requirements[0].GetProperty("dataType").GetString());
-            Assert.Equal("text", requirements[1].GetProperty("dataType").GetString());
-            Assert.Equal(2, requirements[0].GetProperty("selectOptions").GetArrayLength());
+            Assert.Equal("player_id", requirements[0].GetProperty("fieldName").GetString());
+            Assert.Equal("text", requirements[0].GetProperty("dataType").GetString());
+            Assert.Equal("zone_id", requirements[1].GetProperty("fieldName").GetString());
 
             var siblings = root.GetProperty("siblingItems");
             Assert.Equal(1, siblings.GetArrayLength());
@@ -127,8 +127,9 @@ public sealed class CatalogEndpointsTests
         using (var document = JsonDocument.Parse(requirementsBody))
         {
             Assert.Equal(2, document.RootElement.GetArrayLength());
-            Assert.Equal("single_select", document.RootElement[0].GetProperty("dataType").GetString());
-            Assert.Equal("Option A", document.RootElement[0].GetProperty("selectOptions")[0].GetString());
+            Assert.Equal("player_id", document.RootElement[0].GetProperty("fieldName").GetString());
+            Assert.Equal("text", document.RootElement[0].GetProperty("dataType").GetString());
+            Assert.Equal("zone_id", document.RootElement[1].GetProperty("fieldName").GetString());
         }
 
         // ------------------------------------------------------------ rates

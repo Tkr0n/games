@@ -80,7 +80,7 @@ public sealed class Shop2TopUpCatalogProviderTests
         Assert.Equal("1", numeric.ExternalId);
         Assert.Equal("Game Cards", numeric.Name);
         Assert.Equal("Digital game cards", numeric.Description);
-        Assert.Equal("https://cdn.test/big.png", numeric.ImageUrl);
+        Assert.Equal("https://cdn.test/big_game_cards.webp", numeric.ImageUrl);
         Assert.Equal(ProviderUid, numeric.ProviderUid);
 
         var stringId = result.Value[1];
@@ -105,7 +105,7 @@ public sealed class Shop2TopUpCatalogProviderTests
         var usa = result.Value[0];
         Assert.Equal("12", usa.ExternalId);
         Assert.Equal("1", usa.BigCategoryId);
-        Assert.Equal("https://cdn.test/ps-usa.png", usa.ImageUrl);
+        Assert.Equal("https://cdn.test/ps-usa.webp", usa.ImageUrl);
         Assert.Equal(RegionCode.USA, usa.Region);
 
         var global = result.Value[1];
@@ -155,7 +155,7 @@ public sealed class Shop2TopUpCatalogProviderTests
         // max(0.95 * 1.10, 0.95 + 0.25) => 1.20 retail, never the 0.95 reseller cost.
         Assert.Equal(1.20m, playStation.RetailPriceUsd.Value.Amount);
         Assert.NotEqual(0.95m, playStation.RetailPriceUsd.Value.Amount);
-        Assert.Equal("https://cdn.test/ps-usa.png", playStation.ImageUrl);
+        Assert.Equal("https://cdn.test/ps-usa.webp", playStation.ImageUrl);
         Assert.Equal(ProviderUid, playStation.ProviderUid);
 
         var locked = result.Value[1];
@@ -171,7 +171,7 @@ public sealed class Shop2TopUpCatalogProviderTests
         Assert.False(steam.PricesLocked);
         Assert.True(steam.RetailPriceUsd.HasValue);
         Assert.Equal(4.40m, steam.RetailPriceUsd.Value.Amount);
-        Assert.Equal("https://cdn.test/steam-5.png", steam.ImageUrl);
+        Assert.Null(steam.ImageUrl);
         Assert.Equal(RegionCode.GLOBAL, steam.Region);
     }
 
@@ -205,13 +205,13 @@ public sealed class Shop2TopUpCatalogProviderTests
         Assert.True(result.IsSuccess);
         Assert.Equal(3, result.Value.Count);
 
-        // Own image is javascript: -> rejected, valid parent category image inherited.
-        Assert.Equal("https://cdn.test/ps-usa.png", result.Value[0].ImageUrl);
+        // Item inherits the safe parent category image (resolved against the CDN base).
+        Assert.Equal("https://cdn.test/ps-usa.webp", result.Value[0].ImageUrl);
 
-        // Own image is http: -> rejected, parent category image is also unsafe -> null.
+        // Parent category image is unsafe -> null.
         Assert.Null(result.Value[1].ImageUrl);
 
-        // No own image and no parent category image -> null.
+        // Parent category has no image -> null.
         Assert.Null(result.Value[2].ImageUrl);
     }
 
@@ -575,7 +575,7 @@ public sealed class Shop2TopUpCatalogProviderTests
     // --------------------------------------------------------- account health
 
     [Fact]
-    public async Task CheckHealth_ReturnsEnabledFlagAndCachesResult()
+    public async Task CheckHealth_ReturnsTrueWhenEmailPresent_AndCaches()
     {
         var (provider, handler) = CreateProvider(_ => JsonResponse(HttpStatusCode.OK, AccountJson), new InMemoryCache());
 
@@ -590,7 +590,7 @@ public sealed class Shop2TopUpCatalogProviderTests
     }
 
     [Fact]
-    public async Task CheckHealth_DisabledAccount_ReturnsFalse()
+    public async Task CheckHealth_EmptyEmail_ReturnsFalse()
     {
         var (provider, _) = CreateProvider(_ => JsonResponse(HttpStatusCode.OK, DisabledAccountJson));
 
@@ -617,54 +617,46 @@ public sealed class Shop2TopUpCatalogProviderTests
     // --------------------------------------------------- requirements parsing
 
     [Fact]
-    public async Task GetCategoryRequirements_NoRequirementsFound_ReturnsEmptySuccess()
+    public async Task GetCategoryRequirements_EmptyObjectRequirements_ReturnsEmptySuccess()
     {
-        var (provider, handler) = CreateProvider(_ => JsonResponse(
-            HttpStatusCode.NotFound,
-            ErrorJson("NO_REQUIREMENTS_FOUND", "no requirements for this category")));
+        var (provider, handler) = CreateProvider(_ => JsonResponse(HttpStatusCode.OK, CategoriesJson));
 
         var result = await provider.GetCategoryRequirementsAsync("12");
 
         Assert.True(result.IsSuccess);
         Assert.Empty(result.Value);
-        Assert.Equal($"{BaseUrl}/catalog/category/12/requirements", Assert.Single(handler.Requests).Url);
+        Assert.Equal($"{BaseUrl}/catalog/categories?for_ui=true", Assert.Single(handler.Requests).Url);
     }
 
     [Fact]
-    public async Task GetCategoryRequirements_MapsDataTypesOptionsAndLengths()
+    public async Task GetCategoryRequirements_ParsesCommaSeparatedFieldNames()
     {
-        var (provider, _) = CreateProvider(_ => JsonResponse(HttpStatusCode.OK, RequirementsJson));
+        var (provider, _) = CreateProvider(_ => JsonResponse(HttpStatusCode.OK, CategoriesJson));
 
-        var result = await provider.GetCategoryRequirementsAsync("12");
+        var result = await provider.GetCategoryRequirementsAsync("13");
 
         Assert.True(result.IsSuccess);
         var requirements = result.Value;
-        Assert.Equal(5, requirements.Count);
+        Assert.Equal(2, requirements.Count);
 
-        var playerId = requirements[0];
-        Assert.Equal("player_id", playerId.FieldName);
-        Assert.Equal(RequirementDataType.Text, playerId.DataType);
-        Assert.Equal("Enter player ID", playerId.Placeholder);
-        Assert.Equal(5, playerId.MinLength);
-        Assert.Equal(20, playerId.MaxLength);
-        Assert.Empty(playerId.SelectOptions);
+        Assert.Equal("player_id", requirements[0].FieldName);
+        Assert.Equal(RequirementDataType.Text, requirements[0].DataType);
+        Assert.Null(requirements[0].Placeholder);
+        Assert.Empty(requirements[0].SelectOptions);
 
-        var server = requirements[1];
-        Assert.Equal(RequirementDataType.SingleSelect, server.DataType);
-        Assert.Equal(new[] { "NA", "EU", "3" }, server.SelectOptions);
+        Assert.Equal("zone_id", requirements[1].FieldName);
+        Assert.Equal(RequirementDataType.Text, requirements[1].DataType);
+    }
 
-        var amount = requirements[2];
-        Assert.Equal(RequirementDataType.Number, amount.DataType);
-        Assert.Null(amount.Placeholder);
-        Assert.Null(amount.MinLength);
-        Assert.Null(amount.MaxLength);
+    [Fact]
+    public async Task GetCategoryRequirements_UnknownCategory_ReturnsEmptySuccess()
+    {
+        var (provider, _) = CreateProvider(_ => JsonResponse(HttpStatusCode.OK, CategoriesJson));
 
-        var regions = requirements[3];
-        Assert.Equal(RequirementDataType.MultiSelect, regions.DataType);
-        Assert.Equal(new[] { "na" }, regions.SelectOptions);
+        var result = await provider.GetCategoryRequirementsAsync("99999");
 
-        var unknown = requirements[4];
-        Assert.Equal(RequirementDataType.Text, unknown.DataType);
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Value);
     }
 
     // ------------------------------------------------------ dependency wiring
@@ -747,9 +739,9 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string BigCategoriesJson = """
     {
       "success": true,
-      "big_categories": [
-        { "id": 1, "name": "Game Cards", "description": "Digital game cards", "image": "https://cdn.test/big.png" },
-        { "id": "2", "name": "Top Ups", "description": "Game top ups", "image": "javascript:alert(1)" }
+      "data": [
+        { "id": 1, "name": "Game Cards", "description": "Digital game cards", "image_url": "big_game_cards.webp" },
+        { "id": "2", "name": "Top Ups", "description": "Game top ups", "image_url": "javascript:alert(1)" }
       ]
     }
     """;
@@ -757,9 +749,9 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string CategoriesJson = """
     {
       "success": true,
-      "categories": [
-        { "id": 12, "name": "PlayStation Store Gift Card USA", "description": "US region", "big_category_id": 1, "big_category_name": "Game Cards", "image": "https://cdn.test/ps-usa.png" },
-        { "id": "13", "name": "Steam Wallet Global", "description": "Global top ups", "big_category_id": "2", "big_category_name": "Top Ups", "image": "http://cdn.test/steam.png" }
+      "data": [
+        { "id": 12, "name": "PlayStation Store Gift Card USA", "description": "US region", "big_category_id": 1, "big_category_name": "Game Cards", "region_ids": [], "country_ids": [{ "id": 1, "code": "US", "name": "United States" }], "requirements": {}, "image_url": "ps-usa.webp" },
+        { "id": "13", "name": "Steam Wallet Global", "description": "Global top ups", "big_category_id": "2", "big_category_name": "Top Ups", "region_ids": [{ "id": 2, "name": "Global" }], "country_ids": [], "requirements": "player_id, zone_id", "image_url": "http://cdn.test/steam.png" }
       ]
     }
     """;
@@ -767,10 +759,10 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string SubcategoriesJson = """
     {
       "success": true,
-      "subcategories": [
-        { "item_id": 999, "name": "PlayStation 10 USD", "description": "PSN 10", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": "0.95", "prices_locked": false, "in_stock": true, "product_type": "topup" },
-        { "item_id": "1000", "name": "PlayStation 25 USD", "description": "PSN 25", "category_id": "12", "category_name": "PlayStation Store Gift Card USA", "prices_locked": true, "in_stock": false, "product_type": "voucher" },
-        { "item_id": 1001, "name": "Steam 5 USD", "description": "Steam wallet", "category_id": 13, "category_name": "Steam Wallet Global", "price": "4.00", "in_stock": true, "product_type": "voucher", "image": "https://cdn.test/steam-5.png" }
+      "data": [
+        { "item_id": 999, "name": "PlayStation 10 USD", "description": "PSN 10", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": 0.95, "in_stock": true, "product_type": "topup" },
+        { "item_id": "1000", "name": "PlayStation 25 USD", "description": "PSN 25", "category_id": "12", "category_name": "PlayStation Store Gift Card USA", "price": 0, "in_stock": false, "product_type": "voucher" },
+        { "item_id": 1001, "name": "Steam 5 USD", "description": "Steam wallet", "category_id": 13, "category_name": "Steam Wallet Global", "price": 4.00, "in_stock": true, "product_type": "voucher" }
       ]
     }
     """;
@@ -778,10 +770,10 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string UnsafeImageSubcategoriesJson = """
     {
       "success": true,
-      "subcategories": [
-        { "item_id": 1, "name": "Unsafe own image", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": "1.00", "in_stock": true, "product_type": "topup", "image": "javascript:alert(1)" },
-        { "item_id": 2, "name": "Http own image", "description": "", "category_id": 13, "category_name": "Steam Wallet Global", "price": "1.00", "in_stock": true, "product_type": "topup", "image": "http://cdn.test/x.png" },
-        { "item_id": 3, "name": "No image at all", "description": "", "category_id": 14, "category_name": "Unknown Region", "price": "1.00", "in_stock": true, "product_type": "topup" }
+      "data": [
+        { "item_id": 1, "name": "Inherits safe parent", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": 1.00, "in_stock": true, "product_type": "topup" },
+        { "item_id": 2, "name": "Parent unsafe", "description": "", "category_id": 13, "category_name": "Steam Wallet Global", "price": 1.00, "in_stock": true, "product_type": "topup" },
+        { "item_id": 3, "name": "No parent image", "description": "", "category_id": 14, "category_name": "Unknown Region", "price": 1.00, "in_stock": true, "product_type": "topup" }
       ]
     }
     """;
@@ -789,10 +781,10 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string UnsafeImageCategoriesJson = """
     {
       "success": true,
-      "categories": [
-        { "id": 12, "name": "PlayStation Store Gift Card USA", "description": "", "big_category_id": 1, "big_category_name": "Game Cards", "image": "https://cdn.test/ps-usa.png" },
-        { "id": 13, "name": "Steam Wallet Global", "description": "", "big_category_id": 2, "big_category_name": "Top Ups", "image": "javascript:alert(2)" },
-        { "id": 14, "name": "Unknown Region", "description": "", "big_category_id": 2, "big_category_name": "Top Ups" }
+      "data": [
+        { "id": 12, "name": "PlayStation Store Gift Card USA", "description": "", "big_category_id": 1, "big_category_name": "Game Cards", "region_ids": [], "country_ids": [], "requirements": {}, "image_url": "ps-usa.webp" },
+        { "id": 13, "name": "Steam Wallet Global", "description": "", "big_category_id": 2, "big_category_name": "Top Ups", "region_ids": [], "country_ids": [], "requirements": {}, "image_url": "javascript:alert(2)" },
+        { "id": 14, "name": "Unknown Region", "description": "", "big_category_id": 2, "big_category_name": "Top Ups", "region_ids": [], "country_ids": [], "requirements": {} }
       ]
     }
     """;
@@ -800,11 +792,11 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string LockedPriceSubcategoriesJson = """
     {
       "success": true,
-      "subcategories": [
-        { "item_id": 1, "name": "Locked without price", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "prices_locked": true, "in_stock": true, "product_type": "topup" },
-        { "item_id": 2, "name": "Locked with price", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": "0.99", "prices_locked": true, "in_stock": true, "product_type": "topup" },
-        { "item_id": 3, "name": "Unparseable price", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": "not-a-number", "in_stock": true, "product_type": "topup" },
-        { "item_id": 4, "name": "Unknown product type", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": "1.00", "in_stock": true, "product_type": "mystery" }
+      "data": [
+        { "item_id": 1, "name": "Locked without price", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "in_stock": true, "product_type": "topup" },
+        { "item_id": 2, "name": "Locked zero price", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": 0, "in_stock": true, "product_type": "topup" },
+        { "item_id": 3, "name": "Locked negative price", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": -1, "in_stock": true, "product_type": "topup" },
+        { "item_id": 4, "name": "Unknown product type", "description": "", "category_id": 12, "category_name": "PlayStation Store Gift Card USA", "price": 1.00, "in_stock": true, "product_type": "mystery" }
       ]
     }
     """;
@@ -812,13 +804,13 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string PriceJson = """
     {
       "success": true,
-      "price": {
+      "data": {
         "item_id": 999,
         "item_name": "PlayStation 10 USD",
         "unit_price": "0.950000",
         "currency": "USD",
         "original_price": "0.990000",
-        "discount_applied": true,
+        "discount_applied": 0,
         "in_stock": true,
         "timestamp": "2026-11-25T10:00:00Z"
       }
@@ -828,7 +820,7 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string PriceWithInvalidUnitPriceJson = """
     {
       "success": true,
-      "price": {
+      "data": {
         "item_id": 999,
         "item_name": "PlayStation 10 USD",
         "unit_price": "n/a",
@@ -838,27 +830,12 @@ public sealed class Shop2TopUpCatalogProviderTests
     }
     """;
 
-    private const string RequirementsJson = """
-    {
-      "success": true,
-      "requirements": [
-        { "field_name": "player_id", "data_type": "text", "placeholder": "Enter player ID", "min_length": 5, "max_length": "20" },
-        { "field_name": "server", "data_type": "single_select", "select_options": ["NA", "EU", 3] },
-        { "field_name": "amount", "data_type": "number" },
-        { "field_name": "regions", "data_type": "multi_select", "select_options": [{ "value": "na", "label": "North America" }] },
-        { "field_name": "legacy_field", "data_type": "unknown_type" }
-      ]
-    }
-    """;
-
     private const string AccountJson = """
     {
       "success": true,
       "account": {
-        "enabled": true,
         "email": "reseller@example.com",
-        "wallet_balance": "1234.56",
-        "username": "reseller"
+        "wallet": "1234.560000"
       }
     }
     """;
@@ -866,7 +843,7 @@ public sealed class Shop2TopUpCatalogProviderTests
     private const string DisabledAccountJson = """
     {
       "success": true,
-      "account": { "enabled": false, "email": "reseller@example.com", "wallet_balance": "0.00" }
+      "account": { "email": "", "wallet": "0.000000" }
     }
     """;
 
@@ -905,6 +882,7 @@ public sealed class Shop2TopUpCatalogProviderTests
                 KeyId = KeyId,
                 KeySecret = KeySecret,
                 ProviderUid = ProviderUid,
+                ImageCdnBaseUrl = "https://cdn.test/",
             }),
             Options.Create(cacheOptions ?? new CacheOptions()),
             new PricingService(Options.Create(new PricingOptions

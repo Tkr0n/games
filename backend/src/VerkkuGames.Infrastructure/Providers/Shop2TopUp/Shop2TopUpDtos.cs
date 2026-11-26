@@ -27,8 +27,8 @@ internal sealed class Shop2TopUpErrorDto
 
 internal sealed class Shop2TopUpBigCategoriesResponse : Shop2TopUpResponseBase
 {
-    [JsonPropertyName("big_categories")]
-    public List<Shop2TopUpBigCategoryDto>? BigCategories { get; set; }
+    [JsonPropertyName("data")]
+    public List<Shop2TopUpBigCategoryDto>? Data { get; set; }
 }
 
 internal sealed class Shop2TopUpBigCategoryDto
@@ -43,14 +43,14 @@ internal sealed class Shop2TopUpBigCategoryDto
     [JsonPropertyName("description")]
     public string? Description { get; set; }
 
-    [JsonPropertyName("image")]
-    public string? Image { get; set; }
+    [JsonPropertyName("image_url")]
+    public string? ImageUrl { get; set; }
 }
 
 internal sealed class Shop2TopUpCategoriesResponse : Shop2TopUpResponseBase
 {
-    [JsonPropertyName("categories")]
-    public List<Shop2TopUpCategoryDto>? Categories { get; set; }
+    [JsonPropertyName("data")]
+    public List<Shop2TopUpCategoryDto>? Data { get; set; }
 }
 
 internal sealed class Shop2TopUpCategoryDto
@@ -72,14 +72,35 @@ internal sealed class Shop2TopUpCategoryDto
     [JsonPropertyName("big_category_name")]
     public string? BigCategoryName { get; set; }
 
-    [JsonPropertyName("image")]
-    public string? Image { get; set; }
+    [JsonPropertyName("region_ids")]
+    public List<Shop2TopUpRegionRefDto>? RegionIds { get; set; }
+
+    [JsonPropertyName("country_ids")]
+    public List<Shop2TopUpCountryRefDto>? CountryIds { get; set; }
+
+    [JsonPropertyName("requirements")]
+    public JsonElement? Requirements { get; set; }
+
+    [JsonPropertyName("image_url")]
+    public string? ImageUrl { get; set; }
+}
+
+internal sealed class Shop2TopUpRegionRefDto
+{
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+}
+
+internal sealed class Shop2TopUpCountryRefDto
+{
+    [JsonPropertyName("code")]
+    public string? Code { get; set; }
 }
 
 internal sealed class Shop2TopUpSubcategoriesResponse : Shop2TopUpResponseBase
 {
-    [JsonPropertyName("subcategories")]
-    public List<Shop2TopUpSubcategoryDto>? Subcategories { get; set; }
+    [JsonPropertyName("data")]
+    public List<Shop2TopUpSubcategoryDto>? Data { get; set; }
 }
 
 internal sealed class Shop2TopUpSubcategoryDto
@@ -105,26 +126,20 @@ internal sealed class Shop2TopUpSubcategoryDto
     [JsonPropertyName("category_name")]
     public string? CategoryName { get; set; }
 
-    [JsonPropertyName("price")]
-    public string? Price { get; set; }
-
-    [JsonPropertyName("prices_locked")]
-    public bool? PricesLocked { get; set; }
-
-    [JsonPropertyName("in_stock")]
-    public bool? InStock { get; set; }
-
     [JsonPropertyName("product_type")]
     public string? ProductType { get; set; }
 
-    [JsonPropertyName("image")]
-    public string? Image { get; set; }
+    [JsonPropertyName("price")]
+    public decimal? Price { get; set; }
+
+    [JsonPropertyName("in_stock")]
+    public bool? InStock { get; set; }
 }
 
 internal sealed class Shop2TopUpPriceResponse : Shop2TopUpResponseBase
 {
-    [JsonPropertyName("price")]
-    public Shop2TopUpPriceDto? Price { get; set; }
+    [JsonPropertyName("data")]
+    public Shop2TopUpPriceDto? Data { get; set; }
 }
 
 internal sealed class Shop2TopUpPriceDto
@@ -139,47 +154,8 @@ internal sealed class Shop2TopUpPriceDto
     [JsonPropertyName("unit_price")]
     public string? UnitPrice { get; set; }
 
-    [JsonPropertyName("currency")]
-    public string? Currency { get; set; }
-
-    [JsonPropertyName("original_price")]
-    public string? OriginalPrice { get; set; }
-
-    [JsonPropertyName("discount_applied")]
-    public bool? DiscountApplied { get; set; }
-
     [JsonPropertyName("in_stock")]
     public bool? InStock { get; set; }
-
-    [JsonPropertyName("timestamp")]
-    public string? Timestamp { get; set; }
-}
-
-internal sealed class Shop2TopUpRequirementsResponse : Shop2TopUpResponseBase
-{
-    [JsonPropertyName("requirements")]
-    public List<Shop2TopUpRequirementDto>? Requirements { get; set; }
-}
-
-internal sealed class Shop2TopUpRequirementDto
-{
-    [JsonPropertyName("field_name")]
-    public string? FieldName { get; set; }
-
-    [JsonPropertyName("data_type")]
-    public string? DataType { get; set; }
-
-    [JsonPropertyName("placeholder")]
-    public string? Placeholder { get; set; }
-
-    [JsonPropertyName("select_options")]
-    public List<JsonElement>? SelectOptions { get; set; }
-
-    [JsonPropertyName("min_length")]
-    public int? MinLength { get; set; }
-
-    [JsonPropertyName("max_length")]
-    public int? MaxLength { get; set; }
 }
 
 internal sealed class Shop2TopUpAccountResponse : Shop2TopUpResponseBase
@@ -190,8 +166,11 @@ internal sealed class Shop2TopUpAccountResponse : Shop2TopUpResponseBase
 
 internal sealed class Shop2TopUpAccountDto
 {
-    [JsonPropertyName("enabled")]
-    public bool? Enabled { get; set; }
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("wallet")]
+    public string? Wallet { get; set; }
 }
 
 internal sealed class StringOrNumberJsonConverter : JsonConverter<string>

@@ -132,12 +132,12 @@ public static class StubUpstreamResponses
     public const string BigCategoriesJson = """
         {
           "success": true,
-          "big_categories": [
+          "data": [
             {
               "id": 1,
               "name": "Game Cards",
               "description": "Digital game cards",
-              "image": "https://cdn.test/big.png"
+              "image_url": "https://cdn.test/big.png"
             }
           ]
         }
@@ -146,14 +146,17 @@ public static class StubUpstreamResponses
     public const string CategoriesJson = """
         {
           "success": true,
-          "categories": [
+          "data": [
             {
               "id": 12,
               "name": "PlayStation Store Gift Card USA",
               "description": "US region",
               "big_category_id": 1,
               "big_category_name": "Game Cards",
-              "image": "https://cdn.test/ps-usa.png"
+              "region_ids": [],
+              "country_ids": [{ "id": 1, "code": "US", "name": "United States" }],
+              "requirements": "player_id, zone_id",
+              "image_url": "https://cdn.test/ps-usa.png"
             }
           ]
         }
@@ -162,15 +165,14 @@ public static class StubUpstreamResponses
     public const string SubcategoriesJson = """
         {
           "success": true,
-          "subcategories": [
+          "data": [
             {
               "item_id": 999,
               "name": "PlayStation 10 USD",
               "description": "PSN 10",
               "category_id": 12,
               "category_name": "PlayStation Store Gift Card USA",
-              "price": "0.95",
-              "prices_locked": false,
+              "price": 0.95,
               "in_stock": true,
               "product_type": "topup"
             },
@@ -180,7 +182,7 @@ public static class StubUpstreamResponses
               "description": "PSN 25",
               "category_id": 12,
               "category_name": "PlayStation Store Gift Card USA",
-              "prices_locked": true,
+              "price": 0,
               "in_stock": false,
               "product_type": "voucher"
             }
@@ -191,40 +193,15 @@ public static class StubUpstreamResponses
     public const string PriceJson = """
         {
           "success": true,
-          "price": {
+          "data": {
             "item_id": 999,
             "item_name": "PlayStation 10 USD",
             "unit_price": "0.95",
             "currency": "USD",
             "original_price": "0.95",
-            "discount_applied": false,
-            "in_stock": true,
-            "timestamp": "2026-11-25T12:00:00Z"
+            "discount_applied": 0,
+            "in_stock": true
           }
-        }
-        """;
-
-    public const string RequirementsJson = """
-        {
-          "success": true,
-          "requirements": [
-            {
-              "field_name": "player_id",
-              "data_type": "single_select",
-              "placeholder": "Player ID",
-              "select_options": ["Option A", "Option B"],
-              "min_length": null,
-              "max_length": 32
-            },
-            {
-              "field_name": "display_name",
-              "data_type": "text",
-              "placeholder": null,
-              "select_options": [],
-              "min_length": 3,
-              "max_length": 20
-            }
-          ]
         }
         """;
 
@@ -240,9 +217,8 @@ public static class StubUpstreamResponses
         {
           "success": true,
           "account": {
-            "enabled": true,
             "email": "reseller@example.com",
-            "wallet_balance": "123.45"
+            "wallet": "123.450000"
           }
         }
         """;
@@ -283,11 +259,6 @@ public static class StubUpstreamResponses
         if (path.Contains("/catalog/subcategories", StringComparison.Ordinal))
         {
             return Json(HttpStatusCode.OK, SubcategoriesJson);
-        }
-
-        if (path.EndsWith("/requirements", StringComparison.Ordinal))
-        {
-            return Json(HttpStatusCode.OK, RequirementsJson);
         }
 
         if (path.EndsWith("/price", StringComparison.Ordinal))

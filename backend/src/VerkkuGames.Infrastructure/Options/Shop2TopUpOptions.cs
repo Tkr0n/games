@@ -21,6 +21,10 @@ public sealed class Shop2TopUpOptions : IValidatableObject
     [Range(1, 60)]
     public int TimeoutSeconds { get; set; } = 8;
 
+    [Required]
+    [Url]
+    public string ImageCdnBaseUrl { get; set; } = "https://shop2topup.com/api/public/img/";
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (ProviderUid == Guid.Empty)

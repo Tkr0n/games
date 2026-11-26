@@ -143,7 +143,7 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
             return Result<IReadOnlyList<CatalogBigCategory>>.Failure(response.Error);
         }
 
-        if (response.Value.BigCategories is not { } bigCategories)
+        if (response.Value.Data is not { } bigCategories)
         {
             LogInvalidPayload(BigCategoriesPath, null);
             return Result<IReadOnlyList<CatalogBigCategory>>.Failure(UnavailableError());
@@ -163,7 +163,7 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
                 externalId,
                 dto.Name ?? string.Empty,
                 dto.Description ?? string.Empty,
-                UrlSanitizer.SanitizeHttpsUrl(dto.Image)));
+                ResolveImage(dto.ImageUrl)));
         }
 
         return Result<IReadOnlyList<CatalogBigCategory>>.Success(mapped);
@@ -185,7 +185,7 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
             return Result<IReadOnlyList<CatalogCategory>>.Failure(response.Error);
         }
 
-        if (response.Value.Categories is not { } categories)
+        if (response.Value.Data is not { } categories)
         {
             LogInvalidPayload(path, null);
             return Result<IReadOnlyList<CatalogCategory>>.Failure(UnavailableError());
@@ -207,8 +207,8 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
                 ReadId(dto.BigCategoryId),
                 name,
                 dto.Description ?? string.Empty,
-                UrlSanitizer.SanitizeHttpsUrl(dto.Image),
-                _regionResolver.ResolveRegion(name)));
+                ResolveImage(dto.ImageUrl),
+                ResolveRegion(dto, name)));
         }
 
         return Result<IReadOnlyList<CatalogCategory>>.Success(mapped);
@@ -230,13 +230,23 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
             return Result<IReadOnlyList<CatalogItem>>.Failure(response.Error);
         }
 
-        if (response.Value.Subcategories is not { } subcategories)
+        if (response.Value.Data is not { } subcategories)
         {
             LogInvalidPayload(path, null);
             return Result<IReadOnlyList<CatalogItem>>.Failure(UnavailableError());
         }
 
-        var categoryImages = await GetCategoryImageMapAsync(cancellationToken).ConfigureAwait(false);
+        var categoriesResult = await GetCategoriesAsync(bigCategoryId: null, cancellationToken).ConfigureAwait(false);
+        var categoryImageByExternalId = new Dictionary<string, string?>(StringComparer.Ordinal);
+        var categoryRegionByExternalId = new Dictionary<string, RegionCode>(StringComparer.Ordinal);
+        if (categoriesResult.IsSuccess)
+        {
+            foreach (var category in categoriesResult.Value)
+            {
+                categoryImageByExternalId[category.ExternalId] = category.ImageUrl;
+                categoryRegionByExternalId[category.ExternalId] = category.Region;
+            }
+        }
 
         var mapped = new List<CatalogItem>(subcategories.Count);
         foreach (var dto in subcategories)
@@ -251,19 +261,15 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
             var categoryName = dto.CategoryName ?? string.Empty;
             var name = dto.Name ?? string.Empty;
 
-            var imageUrl = UrlSanitizer.SanitizeHttpsUrl(dto.Image);
-            if (imageUrl is null && categoryImages.TryGetValue(parentCategoryId, out var inheritedImageUrl))
-            {
-                imageUrl = inheritedImageUrl;
-            }
-
-            var unitPrice = 0m;
-            var pricesLocked = dto.PricesLocked == true || !TryParsePrice(dto.Price, out unitPrice);
+            categoryImageByExternalId.TryGetValue(parentCategoryId, out var inheritedImageUrl);
+            categoryRegionByExternalId.TryGetValue(parentCategoryId, out var parentRegion);
 
             Money? retailPriceUsd = null;
-            if (!pricesLocked)
+            var pricesLocked = true;
+            if (dto.Price is { } price && price > 0m)
             {
-                retailPriceUsd = _pricingService.CalculateRetailPrice(unitPrice, parentCategoryId);
+                retailPriceUsd = _pricingService.CalculateRetailPrice(price, parentCategoryId);
+                pricesLocked = false;
             }
 
             mapped.Add(new CatalogItem(
@@ -273,9 +279,9 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
                 categoryName,
                 name,
                 dto.Description ?? string.Empty,
-                imageUrl,
+                inheritedImageUrl,
                 MapProductType(dto.ProductType),
-                _regionResolver.ResolveRegion(categoryName, name),
+                parentRegion == default ? _regionResolver.ResolveRegion(categoryName, name) : parentRegion,
                 retailPriceUsd,
                 dto.InStock ?? false,
                 pricesLocked));
@@ -295,7 +301,7 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
             return Result<ItemPriceQuote>.Failure(response.Error);
         }
 
-        if (response.Value.Price is not { } price)
+        if (response.Value.Data is not { } price)
         {
             LogInvalidPayload(path, null);
             return Result<ItemPriceQuote>.Failure(UnavailableError());
@@ -326,39 +332,35 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
         string categoryId,
         CancellationToken cancellationToken)
     {
-        var path = string.Concat("catalog/category/", Uri.EscapeDataString(categoryId), "/requirements");
-        var response = await SendAsync<Shop2TopUpRequirementsResponse>(path, cancellationToken)
+        // The dedicated /catalog/category/{id}/requirements endpoint returns 404 (empty body)
+        // in the current API. Requirements are delivered inline on each category instead.
+        var response = await SendAsync<Shop2TopUpCategoriesResponse>(CategoriesPath, cancellationToken)
             .ConfigureAwait(false);
 
         if (response.IsFailure)
         {
-            return response.Error.Code == NoRequirementsErrorCode
-                ? Result<IReadOnlyList<CategoryRequirement>>.Success([])
-                : Result<IReadOnlyList<CategoryRequirement>>.Failure(response.Error);
+            return Result<IReadOnlyList<CategoryRequirement>>.Failure(response.Error);
         }
 
-        if (response.Value.Requirements is not { } requirements)
+        if (response.Value.Data is not { } categories)
         {
-            LogInvalidPayload(path, null);
+            LogInvalidPayload(CategoriesPath, null);
             return Result<IReadOnlyList<CategoryRequirement>>.Failure(UnavailableError());
         }
 
-        var mapped = new List<CategoryRequirement>(requirements.Count);
-        foreach (var dto in requirements)
-        {
-            var fieldName = dto.FieldName?.Trim();
-            if (string.IsNullOrWhiteSpace(fieldName))
-            {
-                continue;
-            }
+        var category = categories.FirstOrDefault(dto => ReadId(dto.Id) == categoryId);
+        var fieldNames = ParseRequirementFieldNames(category?.Requirements);
 
+        var mapped = new List<CategoryRequirement>(fieldNames.Count);
+        foreach (var fieldName in fieldNames)
+        {
             mapped.Add(new CategoryRequirement(
                 fieldName,
-                MapRequirementDataType(dto.DataType),
-                dto.Placeholder,
-                MapSelectOptions(dto.SelectOptions),
-                dto.MinLength,
-                dto.MaxLength));
+                RequirementDataType.Text,
+                null,
+                [],
+                null,
+                null));
         }
 
         return Result<IReadOnlyList<CategoryRequirement>>.Success(mapped);
@@ -379,24 +381,7 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
             return Result<bool>.Failure(UnavailableError());
         }
 
-        return Result<bool>.Success(account.Enabled ?? false);
-    }
-
-    private async Task<Dictionary<string, string?>> GetCategoryImageMapAsync(CancellationToken cancellationToken)
-    {
-        var categoriesResult = await GetCategoriesAsync(bigCategoryId: null, cancellationToken).ConfigureAwait(false);
-        if (categoriesResult.IsFailure)
-        {
-            return new Dictionary<string, string?>(StringComparer.Ordinal);
-        }
-
-        var images = new Dictionary<string, string?>(categoriesResult.Value.Count, StringComparer.Ordinal);
-        foreach (var category in categoriesResult.Value)
-        {
-            images[category.ExternalId] = category.ImageUrl;
-        }
-
-        return images;
+        return Result<bool>.Success(!string.IsNullOrWhiteSpace(account.Email));
     }
 
     private async Task<Result<T>> GetOrCreateAsync<T>(
@@ -666,54 +651,89 @@ public sealed class Shop2TopUpCatalogProvider : ICatalogProvider
             ? ProductType.Voucher
             : ProductType.TopUp;
 
-    private static RequirementDataType MapRequirementDataType(string? rawDataType)
+    private string? ResolveImage(string? imageUrl)
     {
-        var value = rawDataType?.Trim();
-
-        if (string.Equals(value, "number", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(imageUrl))
         {
-            return RequirementDataType.Number;
+            return null;
         }
 
-        if (string.Equals(value, "single_select", StringComparison.OrdinalIgnoreCase))
+        var trimmed = imageUrl.Trim();
+
+        if (trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            return RequirementDataType.SingleSelect;
+            return UrlSanitizer.SanitizeHttpsUrl(trimmed);
         }
 
-        if (string.Equals(value, "multi_select", StringComparison.OrdinalIgnoreCase))
+        // Reject anything that is not a plain relative filename: any scheme
+        // (javascript:, data:, http:, ...), protocol-relative paths, path
+        // traversal or absolute paths.
+        if (trimmed.Contains(':')
+            || trimmed.StartsWith('/')
+            || trimmed.Contains("..")
+            || trimmed.Contains('\\'))
         {
-            return RequirementDataType.MultiSelect;
+            return null;
         }
 
-        return RequirementDataType.Text;
+        return UrlSanitizer.SanitizeHttpsUrl(
+            string.Concat(_options.ImageCdnBaseUrl.TrimEnd('/'), "/", trimmed));
     }
 
-    private static List<string> MapSelectOptions(List<JsonElement>? selectOptions)
+    private RegionCode ResolveRegion(Shop2TopUpCategoryDto dto, string categoryName)
     {
-        if (selectOptions is not { Count: > 0 })
+        var countryCodes = dto.CountryIds?
+            .Where(country => !string.IsNullOrWhiteSpace(country.Code))
+            .Select(country => country.Code!.Trim().ToUpperInvariant())
+            .ToHashSet(StringComparer.Ordinal);
+
+        if (countryCodes is { Count: > 0 })
+        {
+            if (countryCodes.Contains("US")) return RegionCode.USA;
+            if (countryCodes.Contains("MX")) return RegionCode.MX;
+            if (countryCodes.Contains("PA")) return RegionCode.PA;
+            if (countryCodes.Contains("CO")) return RegionCode.CO;
+        }
+
+        var regionNames = dto.RegionIds?
+            .Where(region => !string.IsNullOrWhiteSpace(region.Name))
+            .Select(region => region.Name!.Trim())
+            .ToArray();
+
+        if (regionNames is { Length: > 0 }
+            && regionNames.Any(name =>
+                name.Contains("Global", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("Worldwide", StringComparison.OrdinalIgnoreCase)))
+        {
+            return RegionCode.GLOBAL;
+        }
+
+        return _regionResolver.ResolveRegion(categoryName);
+    }
+
+    private static List<string> ParseRequirementFieldNames(JsonElement? requirements)
+    {
+        if (requirements is not { } element
+            || element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
         {
             return [];
         }
 
-        var values = new List<string>(selectOptions.Count);
-        foreach (var option in selectOptions)
+        if (element.ValueKind == JsonValueKind.String)
         {
-            var value = option.ValueKind switch
+            var raw = element.GetString();
+            if (string.IsNullOrWhiteSpace(raw))
             {
-                JsonValueKind.String => option.GetString(),
-                JsonValueKind.Number => option.GetRawText(),
-                JsonValueKind.Object when option.TryGetProperty("value", out var inner) =>
-                    inner.ValueKind == JsonValueKind.String ? inner.GetString() : inner.GetRawText(),
-                _ => null,
-            };
-
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                values.Add(value.Trim());
+                return [];
             }
+
+            return raw
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(fieldName => fieldName.Length > 0)
+                .ToList();
         }
 
-        return values;
+        return [];
     }
 
     private sealed class CachedFailureException(Error error) : Exception(
