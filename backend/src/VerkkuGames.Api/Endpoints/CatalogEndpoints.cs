@@ -106,6 +106,11 @@ public static class CatalogEndpoints
         string? search,
         string? page,
         string? pageSize,
+        string? platform,
+        string? genre,
+        string? yearFrom,
+        string? yearTo,
+        string? multiplayerOnly,
         IQueryHandler<GetCatalogItemsQuery, PagedResult<CatalogItem>> handler,
         CancellationToken cancellationToken)
     {
@@ -150,6 +155,25 @@ public static class CatalogEndpoints
                 "'pageSize' must be an integer between 1 and 100.");
         }
 
+        if (!TryParseBoolean(multiplayerOnly, out var multiplayerOnlyValue))
+        {
+            return InvalidBoolean(httpContext, "multiplayerOnly");
+        }
+
+        if (!TryParseOptionalInteger(yearFrom, 1970, 2100, out var yearFromValue))
+        {
+            return ResultExtensions.ValidationProblem(
+                httpContext,
+                "'yearFrom' must be an integer between 1970 and 2100.");
+        }
+
+        if (!TryParseOptionalInteger(yearTo, 1970, 2100, out var yearToValue))
+        {
+            return ResultExtensions.ValidationProblem(
+                httpContext,
+                "'yearTo' must be an integer between 1970 and 2100.");
+        }
+
         var result = await handler
             .HandleAsync(
                 new GetCatalogItemsQuery(
@@ -161,7 +185,12 @@ public static class CatalogEndpoints
                     inStockOnlyValue,
                     search,
                     pageValue,
-                    pageSizeValue),
+                    pageSizeValue,
+                    platform?.Trim(),
+                    genre?.Trim(),
+                    yearFromValue,
+                    yearToValue,
+                    multiplayerOnlyValue),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -306,6 +335,25 @@ public static class CatalogEndpoints
             NumberStyles.Integer,
             CultureInfo.InvariantCulture,
             out value);
+    }
+
+    private static bool TryParseOptionalInteger(
+        string? raw,
+        int min,
+        int max,
+        out int? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(raw)) return true;
+
+        if (!int.TryParse(raw.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return false;
+        }
+
+        if (parsed < min || parsed > max) return false;
+        value = parsed;
+        return true;
     }
 
     private static IResult InvalidProviderUid(HttpContext httpContext) =>

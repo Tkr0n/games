@@ -71,6 +71,11 @@ export interface ServerApiClient {
     search?: string;
     page?: number;
     pageSize?: number;
+    platform?: string;
+    genre?: string;
+    yearFrom?: number;
+    yearTo?: number;
+    multiplayerOnly?: boolean;
   }): Promise<ApiResult<PagedResponse<CatalogItemDto>>>;
   getItemDetail(providerUid: string, itemId: string): Promise<ApiResult<CatalogItemDetailDto>>;
   getItemPrice(providerUid: string, itemId: string): Promise<ApiResult<ItemPriceQuoteDto>>;
@@ -380,6 +385,11 @@ export function createServerApiClient(
         search: params.search,
         page: params.page === undefined ? undefined : String(params.page),
         pageSize: params.pageSize === undefined ? undefined : String(params.pageSize),
+        platform: params.platform,
+        genre: params.genre,
+        yearFrom: params.yearFrom === undefined ? undefined : String(params.yearFrom),
+        yearTo: params.yearTo === undefined ? undefined : String(params.yearTo),
+        multiplayerOnly: boolParam(params.multiplayerOnly),
       });
     },
 

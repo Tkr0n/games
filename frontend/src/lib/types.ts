@@ -55,6 +55,14 @@ export interface CatalogItemDto {
   platform?: string | null;
   /** Region-lock info for game keys; empty lists mean region-free. */
   regionLock?: { regionType: string; availableCountryCodes: string[]; unavailableCountryCodes: string[] } | null;
+  /** Enriched game metadata (year, genres, multiplayer) when available. */
+  metadata?: {
+    releaseYear: number | null;
+    genres: string[];
+    isMultiplayer: boolean;
+    supportedPlatforms: string[];
+    developer: string | null;
+  } | null;
 }
 
 export interface CategoryRequirementDto {

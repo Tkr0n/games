@@ -1,0 +1,161 @@
+---
+import Breadcrumbs from '../../../components/astro/Breadcrumbs.astro';
+import CatalogExplorer, { type CatalogFilters } from '../../../components/react/CatalogExplorer.tsx';
+import { getDictionary, isLocale } from '../../../i18n/utils';
+import {
+  createServerApiClient,
+  isValidExternalId,
+  resolveClientIp,
+  resolveServerEnv,
+} from '../../../lib/api-client';
+import { isValidRegionCode } from '../../../lib/regions';
+import { buildBreadcrumbJsonLd, normalizeSiteUrl } from '../../../lib/seo';
+import type { ProductType, RegionCode } from '../../../lib/types';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+const lang = Astro.params.lang;
+
+if (!isLocale(lang)) {
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
+
+const locale = lang;
+const t = getDictionary(locale);
+const params = Astro.url.searchParams;
+
+// Opaque public UID of the game-keys provider — never a provider name.
+const GAMEKEYS_PROVIDER_UID = '9075f324-4177-45e9-a79c-f23722258b8f';
+
+function readBoolean(name: string): boolean | undefined {
+  const raw = params.get(name);
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  return undefined;
+}
+
+function readPage(): number {
+  const raw = params.get('page');
+  if (!raw || !/^\d+$/.test(raw)) return 1;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+function readYear(name: string): number | null {
+  const raw = (params.get(name) ?? '').trim();
+  if (!/^\d{4}$/.test(raw)) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return parsed >= 1970 && parsed <= 2100 ? parsed : null;
+}
+
+function readAttribute(name: string): string | null {
+  const raw = (params.get(name) ?? '').trim();
+  return /^[A-Za-z0-9 _-]{1,64}$/.test(raw) ? raw : null;
+}
+
+const rawRegion = (params.get('region') ?? '').trim();
+const region: RegionCode | null = isValidRegionCode(rawRegion) ? rawRegion : null;
+const countrySelected = region !== null && region !== 'GLOBAL' && region !== 'OTHER';
+
+const rawProductType = (params.get('productType') ?? '').trim();
+const productType: ProductType | null =
+  rawProductType === 'topup' || rawProductType === 'voucher' ? rawProductType : null;
+
+const rawCategoryId = (params.get('categoryId') ?? '').trim();
+const categoryId = isValidExternalId(rawCategoryId) ? rawCategoryId : null;
+
+const rawSearch = (params.get('q') ?? params.get('search') ?? '').trim();
+const search = rawSearch.slice(0, 100);
+
+const filters: CatalogFilters = {
+  region,
+  includeGlobal: readBoolean('includeGlobal') ?? (countrySelected ? true : false),
+  productType,
+  inStockOnly: readBoolean('inStockOnly') ?? false,
+  search,
+  categoryId,
+  providerUid: GAMEKEYS_PROVIDER_UID,
+  platform: readAttribute('platform'),
+  genre: readAttribute('genre'),
+  yearFrom: readYear('yearFrom'),
+  yearTo: readYear('yearTo'),
+  multiplayerOnly: readBoolean('multiplayerOnly') ?? false,
+  page: readPage(),
+};
+
+const siteUrl = normalizeSiteUrl(Astro.site?.toString() ?? Astro.url.origin);
+const client = createServerApiClient(resolveServerEnv(Astro.locals), {
+  clientIp: resolveClientIp(Astro.request),
+});
+
+const [itemsResult, ratesResult] = await Promise.all([
+  client.getItems({
+    providerUid: filters.providerUid ?? undefined,
+    region: filters.region ?? undefined,
+    includeGlobal: filters.includeGlobal,
+    productType: filters.productType ?? undefined,
+    inStockOnly: filters.inStockOnly,
+    search: filters.search || undefined,
+    categoryId: filters.categoryId ?? undefined,
+    page: filters.page,
+    pageSize: 24,
+    platform: filters.platform ?? undefined,
+    genre: filters.genre ?? undefined,
+    yearFrom: filters.yearFrom ?? undefined,
+    yearTo: filters.yearTo ?? undefined,
+    multiplayerOnly: filters.multiplayerOnly,
+  }),
+  client.getRates(),
+]);
+
+const rates = ratesResult.ok ? ratesResult.data : null;
+const initialPage = itemsResult.ok ? itemsResult.data : null;
+const initialError = itemsResult.ok ? null : itemsResult.error;
+
+const title = `${t.home.typeFullGames} · ${t.meta.siteName}`;
+
+const jsonLd = [
+  buildBreadcrumbJsonLd(siteUrl, [
+    { name: t.nav.home, path: `/${locale}` },
+    { name: t.home.typeFullGames, path: `/${locale}/games` },
+  ]),
+];
+---
+
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={t.home.typeFullGamesDesc}
+  pathname={Astro.url.pathname}
+  siteUrl={siteUrl}
+  jsonLd={jsonLd}
+  initialRates={rates}
+>
+  <div class="space-y-6">
+    <Breadcrumbs
+      locale={locale}
+      items={[
+        { name: t.nav.home, href: `/${locale}/` },
+        { name: t.home.typeFullGames },
+      ]}
+    />
+
+    <header class="space-y-2">
+      <h1 class="font-display text-3xl font-extrabold text-verkku-light sm:text-4xl">
+        {t.home.typeFullGames}
+      </h1>
+      <p class="max-w-2xl text-sm leading-relaxed text-verkku-stone">{t.home.typeFullGamesDesc}</p>
+    </header>
+
+    <CatalogExplorer
+      client:load
+      locale={locale}
+      initialPage={initialPage}
+      initialFilters={filters}
+      initialError={initialError}
+      initialRates={rates}
+      pageSize={24}
+      mode="games"
+    />
+  </div>
+</BaseLayout>

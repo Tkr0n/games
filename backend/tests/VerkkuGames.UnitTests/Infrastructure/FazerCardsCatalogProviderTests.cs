@@ -3,8 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using VerkkuGames.Application.Abstractions;
-using VerkkuGames.Application.Options;
-using VerkkuGames.Application.Services;
+using VerkkuGames.Application.Options;using VerkkuGames.Application.Services;
 using VerkkuGames.Domain.Catalog;
 using VerkkuGames.Domain.Common;
 using VerkkuGames.Domain.ValueObjects;
@@ -210,6 +209,7 @@ public sealed class FazerCardsCatalogProviderTests
             Options.Create(new CacheOptions()),
             new PricingService(Options.Create(new PricingOptions { DefaultMarkupPercent = 10m, MinimumMarginUsd = 0.25m })),
             new RegionResolver(),
+            new StubMetadataProvider(),
             new PassThroughCache(),
             NullLogger<FazerCardsCatalogProvider>.Instance);
         return (provider, handler);
@@ -236,6 +236,14 @@ public sealed class FazerCardsCatalogProviderTests
             Requests.Add(new RecordedRequest(request.Method, request.RequestUri?.AbsoluteUri ?? string.Empty, apiKey));
             return Task.FromResult(responder(request));
         }
+    }
+
+    private sealed class StubMetadataProvider : IGameMetadataProvider
+    {
+        public Task<Result<GameMetadata?>> GetAsync(
+            long steamAppId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result<GameMetadata?>.Success(null));
     }
 
     private sealed class PassThroughCache : ICacheService

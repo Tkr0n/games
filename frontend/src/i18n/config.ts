@@ -77,6 +77,15 @@ export interface Dictionary {
     keyVariantUnknown: string;
     regionLockBadge: string;
   };
+  gameFilters: {
+    platform: string;
+    platformPlaceholder: string;
+    genre: string;
+    genrePlaceholder: string;
+    year: string;
+    yearPlaceholder: string;
+    multiplayer: string;
+  };
   regions: {
     title: string;
     subtitle: string;

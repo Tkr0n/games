@@ -17,4 +17,5 @@ public sealed record CatalogItem(
     bool PricesLocked,
     GameKeyVariant? KeyVariant = null,
     RegionLockInfo? RegionLock = null,
-    string? Platform = null);
+    string? Platform = null,
+    GameMetadata? Metadata = null);

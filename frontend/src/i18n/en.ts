@@ -57,6 +57,15 @@ export const en: Dictionary = {
     keyVariantUnknown: 'Digital key',
     regionLockBadge: 'Region-locked',
   },
+  gameFilters: {
+    platform: 'Console / platform',
+    platformPlaceholder: 'Steam, Xbox, EA…',
+    genre: 'Category',
+    genrePlaceholder: 'Action, RPG, Indie…',
+    year: 'Release year',
+    yearPlaceholder: '2024',
+    multiplayer: 'Multiplayer',
+  },
   regions: {
     title: 'Pick your account region',
     subtitle: 'Your store asks for a region. We stock the cards and top-ups for that region.',

@@ -27,6 +27,11 @@ const navItems = [
       path.startsWith(`/${locale}/category/`) ||
       path.startsWith(`/${locale}/product/`),
   },
+  {
+    href: `/${locale}/games`,
+    label: t.home.typeFullGames,
+    match: (path: string) => path.startsWith(`/${locale}/games`),
+  },
   { href: `/${locale}/studio`, label: t.nav.studio, match: (path: string) => path.startsWith(`/${locale}/studio`) },
 ];
 

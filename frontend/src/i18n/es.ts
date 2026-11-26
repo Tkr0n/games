@@ -57,6 +57,15 @@ export const es: Dictionary = {
     keyVariantUnknown: 'Llave digital',
     regionLockBadge: 'Con restricción de región',
   },
+  gameFilters: {
+    platform: 'Consola / plataforma',
+    platformPlaceholder: 'Steam, Xbox, EA…',
+    genre: 'Categoría',
+    genrePlaceholder: 'Acción, RPG, Indie…',
+    year: 'Año de lanzamiento',
+    yearPlaceholder: '2024',
+    multiplayer: 'Multijugador',
+  },
   regions: {
     title: 'Elige la región de tu cuenta',
     subtitle: 'Tu tienda te pide una región. Nosotros te traemos las tarjetas y recargas de esa región.',

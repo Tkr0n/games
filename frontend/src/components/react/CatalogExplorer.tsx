@@ -26,6 +26,11 @@ export interface CatalogFilters {
   categoryId: string | null;
   /** Opaque provider UID (never a provider name). */
   providerUid: string | null;
+  platform?: string | null;
+  genre?: string | null;
+  yearFrom?: number | null;
+  yearTo?: number | null;
+  multiplayerOnly: boolean;
   page: number;
 }
 
@@ -37,6 +42,8 @@ interface CatalogExplorerProps {
   /** Public rate snapshot rendered by SSR; never contains secrets. */
   initialRates: ExchangeRatesDto | null;
   pageSize?: number;
+  /** Games mode exposes console/year/genre/multiplayer filters. */
+  mode?: 'catalog' | 'games';
 }
 
 const DEFAULT_PAGE_SIZE = 24;
@@ -101,6 +108,11 @@ function buildItemsQuery(filters: CatalogFilters, pageSize: number): string {
   if (filters.search) params.set('search', filters.search);
   if (filters.categoryId) params.set('categoryId', filters.categoryId);
   if (filters.providerUid) params.set('providerUid', filters.providerUid);
+  if (filters.platform) params.set('platform', filters.platform);
+  if (filters.genre) params.set('genre', filters.genre);
+  if (filters.yearFrom) params.set('yearFrom', String(filters.yearFrom));
+  if (filters.yearTo) params.set('yearTo', String(filters.yearTo));
+  if (filters.multiplayerOnly) params.set('multiplayerOnly', 'true');
 
   params.set('page', String(filters.page));
   params.set('pageSize', String(pageSize));
@@ -120,6 +132,11 @@ function buildUrlQuery(filters: CatalogFilters): string {
   if (filters.search) params.set('q', filters.search);
   if (filters.categoryId) params.set('categoryId', filters.categoryId);
   if (filters.providerUid) params.set('providerUid', filters.providerUid);
+  if (filters.platform) params.set('platform', filters.platform);
+  if (filters.genre) params.set('genre', filters.genre);
+  if (filters.yearFrom) params.set('yearFrom', String(filters.yearFrom));
+  if (filters.yearTo) params.set('yearTo', String(filters.yearTo));
+  if (filters.multiplayerOnly) params.set('multiplayerOnly', 'true');
   if (filters.page > 1) params.set('page', String(filters.page));
 
   return params.toString();
@@ -147,6 +164,7 @@ export default function CatalogExplorer({
   initialError,
   initialRates,
   pageSize = DEFAULT_PAGE_SIZE,
+  mode = 'catalog',
 }: CatalogExplorerProps) {
   const t = getDictionary(locale);
 
@@ -155,6 +173,11 @@ export default function CatalogExplorer({
   const [error, setError] = useState<ProblemDetailsDto | null>(initialError);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(initialFilters.search);
+  const [platformInput, setPlatformInput] = useState(initialFilters.platform ?? '');
+  const [genreInput, setGenreInput] = useState(initialFilters.genre ?? '');
+  const [yearInput, setYearInput] = useState(
+    initialFilters.yearFrom ? String(initialFilters.yearFrom) : '',
+  );
 
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
@@ -164,6 +187,12 @@ export default function CatalogExplorer({
   const resultsId = useId();
   const searchId = useId();
   const stockId = useId();
+  const platformId = useId();
+  const genreId = useId();
+  const yearId = useId();
+  const multiplayerId = useId();
+  const platformListId = useId();
+  const genreListId = useId();
 
   const load = useCallback(
     (next: CatalogFilters) => {
@@ -269,6 +298,9 @@ export default function CatalogExplorer({
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     setSearchInput('');
+    setPlatformInput('');
+    setGenreInput('');
+    setYearInput('');
     load({
       region: null,
       includeGlobal: false,
@@ -277,8 +309,31 @@ export default function CatalogExplorer({
       search: '',
       categoryId: filtersRef.current.categoryId,
       providerUid: filtersRef.current.providerUid,
+      platform: null,
+      genre: null,
+      yearFrom: null,
+      yearTo: null,
+      multiplayerOnly: false,
       page: 1,
     });
+  };
+
+  const handleOptionalText = (field: 'platform' | 'genre', value: string): void => {
+    const trimmed = value.trim().slice(0, 64);
+    if (field === 'platform') setPlatformInput(value);
+    else setGenreInput(value);
+    load({ ...filtersRef.current, [field]: trimmed || null, page: 1 });
+  };
+
+  const handleYear = (value: string): void => {
+    setYearInput(value);
+    const parsed = /^\d{4}$/.test(value.trim()) ? Number.parseInt(value.trim(), 10) : null;
+    const yearFrom = parsed !== null && parsed >= 1970 && parsed <= 2100 ? parsed : null;
+    load({ ...filtersRef.current, yearFrom, yearTo: yearFrom, page: 1 });
+  };
+
+  const handleMultiplayer = (next: boolean): void => {
+    load({ ...filtersRef.current, multiplayerOnly: next, page: 1 });
   };
 
   const goToPage = (page: number): void => {
@@ -324,6 +379,81 @@ export default function CatalogExplorer({
             value={{ region: filters.region, includeGlobal: filters.includeGlobal }}
             onChange={handleRegion}
           />
+
+          {mode === 'games' ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1.5">
+                <label htmlFor={platformId} className="text-xs font-semibold text-verkku-stone">
+                  {t.gameFilters.platform}
+                </label>
+                <input
+                  id={platformId}
+                  type="text"
+                  list={platformListId}
+                  value={platformInput}
+                  onChange={(event) => handleOptionalText('platform', event.target.value)}
+                  placeholder={t.gameFilters.platformPlaceholder}
+                  maxLength={64}
+                  className="w-full rounded-lg border border-verkku-mint-soft/30 bg-verkku-bg-deep px-3 py-2 text-sm text-verkku-light placeholder:text-verkku-mint-soft/60 focus-visible:outline-2 focus-visible:outline-verkku-neon"
+                />
+                <datalist id={platformListId}>
+                  {['Steam', 'Xbox', 'EA', 'Windows', 'macOS', 'Linux'].map((option) => (
+                    <option key={option} value={option} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor={genreId} className="text-xs font-semibold text-verkku-stone">
+                  {t.gameFilters.genre}
+                </label>
+                <input
+                  id={genreId}
+                  type="text"
+                  list={genreListId}
+                  value={genreInput}
+                  onChange={(event) => handleOptionalText('genre', event.target.value)}
+                  placeholder={t.gameFilters.genrePlaceholder}
+                  maxLength={64}
+                  className="w-full rounded-lg border border-verkku-mint-soft/30 bg-verkku-bg-deep px-3 py-2 text-sm text-verkku-light placeholder:text-verkku-mint-soft/60 focus-visible:outline-2 focus-visible:outline-verkku-neon"
+                />
+                <datalist id={genreListId}>
+                  {['Action', 'Adventure', 'Indie', 'RPG', 'Simulation', 'Strategy', 'Shooter', 'Sports'].map((option) => (
+                    <option key={option} value={option} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor={yearId} className="text-xs font-semibold text-verkku-stone">
+                  {t.gameFilters.year}
+                </label>
+                <input
+                  id={yearId}
+                  type="text"
+                  inputMode="numeric"
+                  value={yearInput}
+                  onChange={(event) => handleYear(event.target.value)}
+                  placeholder={t.gameFilters.yearPlaceholder}
+                  maxLength={4}
+                  className="w-full rounded-lg border border-verkku-mint-soft/30 bg-verkku-bg-deep px-3 py-2 text-sm text-verkku-light placeholder:text-verkku-mint-soft/60 focus-visible:outline-2 focus-visible:outline-verkku-neon"
+                />
+              </div>
+
+              <div className="flex items-end gap-2 pb-2">
+                <input
+                  id={multiplayerId}
+                  type="checkbox"
+                  checked={filters.multiplayerOnly}
+                  onChange={(event) => handleMultiplayer(event.target.checked)}
+                  className="size-4 rounded border-verkku-mint-soft/50 bg-verkku-surface accent-verkku-neon focus-visible:outline-2 focus-visible:outline-verkku-neon"
+                />
+                <label htmlFor={multiplayerId} className="text-xs font-semibold text-verkku-stone">
+                  {t.gameFilters.multiplayer}
+                </label>
+              </div>
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1.5">
@@ -494,6 +624,16 @@ export default function CatalogExplorer({
                                 ? t.home.keyVariantBaseGame
                                 : t.home.keyVariantUnknown}
                           {item.platform ? ` · ${item.platform}` : ''}
+                        </span>
+                      ) : null}
+                      {item.metadata?.releaseYear ? (
+                        <span className="rounded-full border border-verkku-mint-soft/35 bg-verkku-bg-deep/60 px-2 py-0.5 text-[11px] font-semibold text-verkku-stone">
+                          {item.metadata.releaseYear}
+                        </span>
+                      ) : null}
+                      {item.metadata?.isMultiplayer ? (
+                        <span className="rounded-full border border-verkku-teal-bright/50 bg-verkku-teal/25 px-2 py-0.5 text-[11px] font-semibold text-verkku-mint-soft">
+                          {t.gameFilters.multiplayer}
                         </span>
                       ) : null}
                       <span className="rounded-full border border-verkku-mint-soft/35 bg-verkku-bg-deep/60 px-2 py-0.5 text-[11px] font-semibold text-verkku-stone">

@@ -129,6 +129,24 @@ export async function handleItemsRequest(
     return invalidRequest(`pageSize must be an integer between 1 and ${MAX_PAGE_SIZE}.`);
   }
 
+  const ATTRIBUTE_PATTERN = /^[A-Za-z0-9 _-]{1,64}$/;
+  const platform = readParam(params, 'platform');
+  if (platform !== undefined && !ATTRIBUTE_PATTERN.test(platform)) {
+    return invalidRequest('platform must be 1-64 letters, digits, spaces, underscores or hyphens.');
+  }
+  const genre = readParam(params, 'genre');
+  if (genre !== undefined && !ATTRIBUTE_PATTERN.test(genre)) {
+    return invalidRequest('genre must be 1-64 letters, digits, spaces, underscores or hyphens.');
+  }
+  const yearFrom = readInteger(params, 'yearFrom', 1970, 2100);
+  if (yearFrom === 'invalid') return invalidRequest('yearFrom must be between 1970 and 2100.');
+  const yearTo = readInteger(params, 'yearTo', 1970, 2100);
+  if (yearTo === 'invalid') return invalidRequest('yearTo must be between 1970 and 2100.');
+  const multiplayerOnly = readBoolean(params, 'multiplayerOnly');
+  if (multiplayerOnly === 'invalid') {
+    return invalidRequest('multiplayerOnly must be "true" or "false".');
+  }
+
   const client = createServerApiClient(normalizeServerEnv(env), {
     clientIp: resolveClientIp(request),
     fetchFn,
@@ -144,6 +162,11 @@ export async function handleItemsRequest(
     search,
     page: page ?? DEFAULT_PAGE,
     pageSize: pageSize ?? DEFAULT_PAGE_SIZE,
+    platform,
+    genre,
+    yearFrom: yearFrom === undefined ? undefined : yearFrom,
+    yearTo: yearTo === undefined ? undefined : yearTo,
+    multiplayerOnly: multiplayerOnly ?? false,
   });
 
   if (!result.ok) {

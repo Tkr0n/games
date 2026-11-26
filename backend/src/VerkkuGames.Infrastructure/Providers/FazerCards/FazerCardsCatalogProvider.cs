@@ -35,6 +35,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
     private readonly CacheOptions _cacheOptions;
     private readonly IPricingService _pricingService;
     private readonly IRegionResolver _regionResolver;
+    private readonly IGameMetadataProvider _metadataProvider;
     private readonly ICacheService _cache;
     private readonly ILogger<FazerCardsCatalogProvider> _logger;
     private readonly Uri _baseAddress;
@@ -45,6 +46,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
         IOptions<CacheOptions> cacheOptions,
         IPricingService pricingService,
         IRegionResolver regionResolver,
+        IGameMetadataProvider metadataProvider,
         ICacheService cache,
         ILogger<FazerCardsCatalogProvider> logger)
     {
@@ -53,6 +55,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
         ArgumentNullException.ThrowIfNull(cacheOptions);
         ArgumentNullException.ThrowIfNull(pricingService);
         ArgumentNullException.ThrowIfNull(regionResolver);
+        ArgumentNullException.ThrowIfNull(metadataProvider);
         ArgumentNullException.ThrowIfNull(cache);
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -61,6 +64,7 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
         _cacheOptions = cacheOptions.Value;
         _pricingService = pricingService;
         _regionResolver = regionResolver;
+        _metadataProvider = metadataProvider;
         _cache = cache;
         _logger = logger;
         _baseAddress = new Uri(string.Concat(_options.BaseUrl.TrimEnd('/'), "/"), UriKind.Absolute);
@@ -217,17 +221,31 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
                 return Result<IReadOnlyList<CatalogItem>>.Failure(games.Error);
             }
 
-            var all = new List<CatalogItem>();
-            foreach (var game in games.Value.Items ?? [])
+            var gameIds = (games.Value.Items ?? [])
+                .Select(game => ReadId(game.GameId))
+                .Where(id => id.Length > 0)
+                .ToArray();
+
+            // Bounded parallelism keeps the cold path fast instead of issuing one
+            // sequential HTTP request per game.
+            using var gate = new SemaphoreSlim(8, 8);
+            var batches = await Task.WhenAll(gameIds.Select(async gameId =>
             {
-                var gameId = ReadId(game.GameId);
-                if (gameId.Length == 0) continue;
+                await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    return await FetchKeysAsync(gameId, cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    gate.Release();
+                }
+            })).ConfigureAwait(false);
 
-                var keys = await FetchKeysAsync(gameId, cancellationToken).ConfigureAwait(false);
-                if (keys.IsFailure) continue;
-
-                all.AddRange(keys.Value);
-            }
+            var all = batches
+                .Where(result => result.IsSuccess)
+                .SelectMany(result => result.Value)
+                .ToArray();
 
             return Result<IReadOnlyList<CatalogItem>>.Success(all);
         }
@@ -385,6 +403,10 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
             ? new RegionLockInfo("restricted", [], [])
             : new RegionLockInfo("free", [], []);
 
+        var metadataResult = await _metadataProvider.GetAsync(payload.AppId ?? 0, cancellationToken)
+            .ConfigureAwait(false);
+        var metadata = metadataResult.IsSuccess ? metadataResult.Value : null;
+
         var mapped = new List<CatalogItem>();
         foreach (var key in payload.Keys ?? [])
         {
@@ -414,7 +436,8 @@ public sealed class FazerCardsCatalogProvider : ICatalogProvider
                 retail is null,
                 effectiveVariant,
                 regionLock,
-                payload.Platform));
+                payload.Platform,
+                metadata));
         }
 
         return Result<IReadOnlyList<CatalogItem>>.Success(mapped);

@@ -11,6 +11,7 @@ using VerkkuGames.Infrastructure.Options;
 using VerkkuGames.Infrastructure.Providers.Binance;
 using VerkkuGames.Infrastructure.Providers.FazerCards;
 using VerkkuGames.Infrastructure.Providers.Shop2TopUp;
+using VerkkuGames.Infrastructure.Providers.Steam;
 
 namespace VerkkuGames.Infrastructure;
 
@@ -61,6 +62,15 @@ public static class DependencyInjection
         }
 
         services.AddSingleton<ICacheService, RedisHybridCacheService>();
+
+        services.AddHttpClient<SteamGameMetadataProvider>(client =>
+            {
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.TryAddWithoutValidation(
+                    "User-Agent",
+                    "VerkkuGames/1.0 (+catalog metadata)");
+            });
+        services.AddTransient<IGameMetadataProvider, SteamGameMetadataProvider>();
 
         var shop2TopUpOptions = configuration.GetSection(Shop2TopUpOptions.SectionName).Get<Shop2TopUpOptions>()
             ?? new Shop2TopUpOptions();
