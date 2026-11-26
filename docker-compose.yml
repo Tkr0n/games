@@ -1,10 +1,12 @@
+name: verkkugames
+
 services:
-  valkey:
-    image: valkey/valkey:8-alpine
-    container_name: verkku-games-valkey
+  redis:
+    image: redis:7-alpine
+    container_name: verkku-games-redis
     restart: unless-stopped
     command:
-      - valkey-server
+      - redis-server
       - --maxmemory
       - 128mb
       - --maxmemory-policy
@@ -14,12 +16,33 @@ services:
       - --appendonly
       - "no"
       - --requirepass
-      - ${VALKEY_PASSWORD:-change_me_local_dev_only}
+      - ${REDIS_PASSWORD:-verkkugames_dev_redis}
     ports:
-      # Bound to loopback only for local development. In Raspberry Pi production, omit host ports and use Docker internal network.
+      # Bound to loopback only for local development. In Raspberry Pi production, omit host ports and use the Docker internal network.
       - "127.0.0.1:6379:6379"
     healthcheck:
-      test: ["CMD-SHELL", "valkey-cli -a \"$${VALKEY_PASSWORD:-change_me_local_dev_only}\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD:-verkkugames_dev_redis}\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - verkku-internal
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: verkku-games-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-verkkugames}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-verkkugames_dev_postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-verkkugames}
+    ports:
+      # Loopback only for local development. Omit host ports in Raspberry Pi production.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER:-verkkugames}\" -d \"$${POSTGRES_DB:-verkkugames}\""]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -36,12 +59,16 @@ services:
     container_name: verkku-games-api
     restart: unless-stopped
     depends_on:
-      valkey:
+      redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      Cache__RedisConnectionString: "valkey:6379,password=${VALKEY_PASSWORD:-change_me_local_dev_only},abortConnect=false"
+      Cache__RedisConnectionString: "redis:6379,password=${REDIS_PASSWORD:-verkkugames_dev_redis},abortConnect=false"
+      # Reserved for v2 transactional store (orders, users, payments). Not consumed by the v1 API yet.
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-verkkugames};Username=${POSTGRES_USER:-verkkugames};Password=${POSTGRES_PASSWORD:-verkkugames_dev_postgres}"
       ApiSecurity__ClientApiKey: ${API_CLIENT_KEY:?API_CLIENT_KEY is required}
       Shop2TopUp__KeyId: ${SHOP2TOPUP_KEY_ID:?SHOP2TOPUP_KEY_ID is required}
       Shop2TopUp__KeySecret: ${SHOP2TOPUP_KEY_SECRET:?SHOP2TOPUP_KEY_SECRET is required}
@@ -53,6 +80,9 @@ services:
       - "127.0.0.1:8080:8080"
     networks:
       - verkku-internal
+
+volumes:
+  postgres-data:
 
 networks:
   verkku-internal:
